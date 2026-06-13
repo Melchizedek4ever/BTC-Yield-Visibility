@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useDashboardStore } from '@/lib/store';
 import { timeAgo } from '@/lib/utils';
 
@@ -35,7 +36,15 @@ export default function Header({ lastUpdated }: HeaderProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/methodology"
+            className="text-xs hover:opacity-80 transition-opacity hidden sm:block"
+            style={{ color: 'var(--text-dim)' }}
+          >
+            Methodology
+          </Link>
+          <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'var(--surface2)', border: '1px solid var(--border)' }}>
           <button
             onClick={() => setMode('simple')}
             className="px-4 py-1.5 rounded-md text-sm font-medium transition-all"
@@ -56,6 +65,7 @@ export default function Header({ lastUpdated }: HeaderProps) {
           >
             Advanced
           </button>
+          </div>
         </div>
       </div>
     </header>
