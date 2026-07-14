@@ -98,8 +98,28 @@ export default function DataTable({ protocols, loading }: DataTableProps) {
       case 'apy':
         return (
           <div>
-            <div className="font-bold text-lg" style={{ color: comingSoon ? 'var(--text-dim)' : apyColor(p.apy) }}>
-              {comingSoon ? `~${formatApy(p.apy)}` : formatApy(p.apy)}
+            <div className="flex items-center gap-1.5">
+              <div className="font-bold text-lg" style={{ color: comingSoon ? 'var(--text-dim)' : apyColor(p.apy) }}>
+                {comingSoon ? `~${formatApy(p.apy)}` : formatApy(p.apy)}
+              </div>
+              {p.scoresEstimated && !comingSoon && (
+                <span
+                  className="px-1.5 py-0.5 rounded-full text-xs"
+                  style={{ background: '#2a1a00', color: '#F59E0B', border: '1px solid #F59E0B22' }}
+                  title="No live data available — showing curated baseline values."
+                >
+                  est.
+                </span>
+              )}
+              {p.isStale && !comingSoon && (
+                <span
+                  className="px-1.5 py-0.5 rounded-full text-xs"
+                  style={{ background: '#0a1a2e', color: '#3B82F6', border: '1px solid #3B82F622' }}
+                  title="Live APY looked anomalous — showing the last known good value instead."
+                >
+                  stale
+                </span>
+              )}
             </div>
             <div className="text-xs" style={{ color: 'var(--text-dim)' }}>
               {comingSoon ? 'target' : `${p.apyRange.min}–${p.apyRange.max}%`}

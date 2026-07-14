@@ -39,5 +39,7 @@ export interface YieldOpportunity {
   launchTarget?: string;
   capacityNote?: string;
   scoresEstimated?: boolean;
+  /** True when a live reading was rejected as anomalous and this is a stale fallback value. */
+  isStale?: boolean;
   updatedAt: string;
 }

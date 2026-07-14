@@ -187,8 +187,21 @@ export default function ProtocolCard({ protocol: p }: ProtocolCardProps) {
           </span>
         ))}
         {p.scoresEstimated && !comingSoon && (
-          <span className="px-2 py-0.5 rounded-full text-xs" style={{ background: '#2a1a00', color: '#F59E0B', border: '1px solid #F59E0B22' }}>
+          <span
+            className="px-2 py-0.5 rounded-full text-xs"
+            style={{ background: '#2a1a00', color: '#F59E0B', border: '1px solid #F59E0B22' }}
+            title="No live data available — showing curated baseline values."
+          >
             est.
+          </span>
+        )}
+        {p.isStale && !comingSoon && (
+          <span
+            className="px-2 py-0.5 rounded-full text-xs"
+            style={{ background: '#0a1a2e', color: '#3B82F6', border: '1px solid #3B82F622' }}
+            title="Live APY looked anomalous — showing the last known good value instead."
+          >
+            stale
           </span>
         )}
       </div>
