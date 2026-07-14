@@ -55,6 +55,7 @@ function toOpportunity(
     launchTarget: o.launchTarget,
     capacityNote: o.capacityNote,
     scoresEstimated: o.scoresEstimated,
+    isStale: o.isStale,
     updatedAt: o.updatedAt,
   };
 }
@@ -135,6 +136,7 @@ function toLegacy(o: YieldOpportunity): YieldProtocol {
     defiLlamaPool: o.protocol.metadata.defiLlamaPool,
     lastUpdated: o.updatedAt,
     scoresEstimated: o.scoresEstimated,
+    isStale: o.isStale,
     status: o.status,
     launchTarget: o.launchTarget,
     capacityNote: o.capacityNote,
