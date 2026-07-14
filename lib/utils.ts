@@ -14,10 +14,42 @@ export function formatChange(val: number): string {
   return `${sign}${val.toFixed(1)}%`;
 }
 
+export interface RiskTier {
+  key: 'conservative' | 'balanced' | 'elevated' | 'aggressive';
+  label: string;
+  /** Solid accent color (green → red heat ramp). */
+  color: string;
+  /** Low-alpha version of `color` for tinted backgrounds. */
+  tint: string;
+}
+
+/**
+ * Single source of truth for risk-tier color coding.
+ * Green (safe) → yellow → orange → red (risky), based on the 1–10 risk score.
+ */
+export function riskTier(score: number): RiskTier {
+  if (score <= 2.5) return { key: 'conservative', label: 'Conservative', color: '#22C55E', tint: '#22C55E1A' };
+  if (score <= 4.5) return { key: 'balanced', label: 'Balanced', color: '#EAB308', tint: '#EAB3081A' };
+  if (score <= 6.5) return { key: 'elevated', label: 'Elevated', color: '#F97316', tint: '#F973161A' };
+  return { key: 'aggressive', label: 'Aggressive', color: '#EF4444', tint: '#EF44441A' };
+}
+
+export const COMING_SOON_COLOR = '#64748B';
+
 export function riskColor(score: number): string {
-  if (score <= 3) return '#22C55E';
-  if (score <= 5.5) return '#F59E0B';
-  return '#EF4444';
+  return riskTier(score).color;
+}
+
+/**
+ * "Yield heat" ramp for APY — cool green (modest) → gold (hot), kept in a
+ * green→gold family so it stays visually distinct from the risk red scale.
+ */
+export function apyColor(apy: number): string {
+  if (apy < 5) return '#34D399';   // emerald — modest
+  if (apy < 12) return '#22C55E';  // green
+  if (apy < 25) return '#A3E635';  // lime
+  if (apy < 40) return '#FACC15';  // gold
+  return '#FBBF24';                // amber — hot
 }
 
 export function healthColor(score: number): string {

@@ -14,6 +14,10 @@ export default function CardsGrid({ protocols, loading }: CardsGridProps) {
 
   const filtered = category === 'All' ? protocols : protocols.filter(p => p.category === category);
   const sorted = [...filtered].sort((a, b) => {
+    // Coming-soon sources always sink to the bottom, regardless of sort.
+    const acs = a.status === 'coming-soon' ? 1 : 0;
+    const bcs = b.status === 'coming-soon' ? 1 : 0;
+    if (acs !== bcs) return acs - bcs;
     const av = a[sortKey] as number;
     const bv = b[sortKey] as number;
     return sortDesc ? bv - av : av - bv;

@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import StatsBar from './StatsBar';
 import Controls from './Controls';
 import MetricToggles from './MetricToggles';
+import RiskLegend from './RiskLegend';
 import CardsGrid from './CardsGrid';
 import DataTable from './DataTable';
 import Header from './Header';
@@ -53,6 +54,7 @@ export default function Dashboard() {
 
         <Controls />
         <MetricToggles />
+        <RiskLegend />
 
         {mode === 'simple' ? (
           <CardsGrid protocols={protocols} loading={isLoading} />

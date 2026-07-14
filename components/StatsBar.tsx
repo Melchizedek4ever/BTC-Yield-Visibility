@@ -62,7 +62,7 @@ export default function StatsBar({ stats, loading }: StatsBarProps) {
       <StatCard
         label="Yield Sources"
         value={stats.activeSourceCount.toString()}
-        sub="Active protocols"
+        sub={stats.upcomingCount > 0 ? `Active · ${stats.upcomingCount} coming soon` : 'Active protocols'}
         accent="var(--orange)"
       />
     </div>

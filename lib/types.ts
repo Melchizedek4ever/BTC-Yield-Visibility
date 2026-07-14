@@ -39,6 +39,11 @@ export interface YieldProtocol {
 
   isStale?: boolean;
   scoresEstimated?: boolean;
+
+  // Lifecycle. Defaults to 'live' when omitted.
+  status?: 'live' | 'coming-soon';
+  launchTarget?: string;   // e.g. "Q3 2026" — only for coming-soon sources
+  capacityNote?: string;   // short one-liner about program terms
 }
 
 export type Category = 'All' | 'Staking' | 'Lending' | 'DEX/LP' | 'Yield';
@@ -49,4 +54,5 @@ export interface GlobalStats {
   bestApy: number;
   safestApy: number;
   activeSourceCount: number;
+  upcomingCount: number;
 }
