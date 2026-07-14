@@ -9,6 +9,19 @@ const LLAMA_CHAIN_TVL_URL = 'https://api.llama.fi/v2/historicalChainTvl/Stacks';
 let cachedData: { protocols: YieldProtocol[]; stats: GlobalStats; ts: number } | null = null;
 const CACHE_TTL = 60_000;
 
+interface LiveSnapshot { apy: number; tvlUsd: number }
+const lastKnownGood: Record<string, LiveSnapshot> = {};
+
+/**
+ * A live APY reading is treated as a data error (not a real market move) when it falls
+ * more than 80% below the midpoint of the protocol's known baseline range. Matches the
+ * anomaly-detection behavior documented on /methodology.
+ */
+function isAnomalousApy(apyRange: { min: number; max: number }, liveApy: number): boolean {
+  const baseline = (apyRange.min + apyRange.max) / 2;
+  return liveApy < baseline * 0.2;
+}
+
 async function fetchLlamaPools(): Promise<Record<string, { apy: number; tvlUsd: number }>> {
   try {
     const res = await fetch(LLAMA_POOLS_URL, { next: { revalidate: 60 } });
@@ -51,14 +64,28 @@ export async function GET() {
 
   const enriched = PROTOCOL_SEED.map(p => {
     const live = p.defiLlamaProject ? llamaPools[p.defiLlamaProject] : null;
-    if (!live || live.apy === 0) return { ...p, scoresEstimated: true };
-    return {
-      ...p,
-      apy: parseFloat(live.apy.toFixed(2)),
-      tvlUsd: live.tvlUsd,
-      lastUpdated: new Date().toISOString(),
-      scoresEstimated: false,
-    };
+    const good = p.defiLlamaProject ? lastKnownGood[p.defiLlamaProject] : undefined;
+
+    if (live && live.apy > 0 && !isAnomalousApy(p.apyRange, live.apy)) {
+      if (p.defiLlamaProject) {
+        lastKnownGood[p.defiLlamaProject] = { apy: live.apy, tvlUsd: live.tvlUsd };
+      }
+      return {
+        ...p,
+        apy: parseFloat(live.apy.toFixed(2)),
+        tvlUsd: live.tvlUsd,
+        lastUpdated: new Date().toISOString(),
+        isStale: false,
+        scoresEstimated: false,
+      };
+    }
+
+    // Live fetch missing, zero, or rejected as anomalous — fall back to the last
+    // accepted live reading if we have one, otherwise the curated seed baseline.
+    if (good) {
+      return { ...p, apy: good.apy, tvlUsd: good.tvlUsd, isStale: true, scoresEstimated: false };
+    }
+    return { ...p, isStale: false, scoresEstimated: true };
   });
 
   const scored = normalizeOpportunityScores(enriched as YieldProtocol[]);

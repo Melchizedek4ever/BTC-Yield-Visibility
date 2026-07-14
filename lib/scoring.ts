@@ -33,21 +33,3 @@ export function normalizeOpportunityScores(protocols: YieldProtocol[]): YieldPro
     };
   });
 }
-
-export function enrichWithLiveData(
-  seed: YieldProtocol[],
-  llamaData: Record<string, { apy: number; tvlUsd: number }>
-): YieldProtocol[] {
-  const enriched = seed.map(p => {
-    const live = p.defiLlamaProject ? llamaData[p.defiLlamaProject] : null;
-    if (!live) return p;
-    return {
-      ...p,
-      apy: live.apy ?? p.apy,
-      tvlUsd: live.tvlUsd ?? p.tvlUsd,
-      lastUpdated: new Date().toISOString(),
-    };
-  });
-
-  return normalizeOpportunityScores(enriched);
-}
