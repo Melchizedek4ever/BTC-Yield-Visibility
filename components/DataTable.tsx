@@ -54,7 +54,20 @@ export default function DataTable({ protocols, loading }: DataTableProps) {
   });
 
   if (loading) {
-    return <div className="h-64 animate-pulse" style={{ background: 'var(--surface)' }} />;
+    return <div className="h-64 animate-pulse" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }} />;
+  }
+
+  if (sorted.length === 0) {
+    return (
+      <div className="text-center py-16 px-4" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <div className="font-mono-data text-xs uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-faint)' }}>
+          No matching opportunities
+        </div>
+        <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
+          Nothing in this category right now — try a different filter above.
+        </p>
+      </div>
+    );
   }
 
   // Renders the cell content for a given column + protocol. Header and body both

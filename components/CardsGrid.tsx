@@ -35,8 +35,13 @@ export default function CardsGrid({ protocols, loading }: CardsGridProps) {
 
   if (sorted.length === 0) {
     return (
-      <div className="text-center py-16" style={{ color: 'var(--text-dim)' }}>
-        No protocols match this filter.
+      <div className="text-center py-16 px-4" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <div className="font-mono-data text-xs uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-faint)' }}>
+          No matching opportunities
+        </div>
+        <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
+          Nothing in this category right now — try a different filter above.
+        </p>
       </div>
     );
   }

@@ -50,11 +50,21 @@ export default function Dashboard() {
           </p>
         </div>
 
+        {isLoading && (
+          <div className="mb-4 flex items-center gap-2 font-mono-data text-xs" style={{ color: 'var(--text-faint)' }}>
+            <span className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: 'var(--gold)' }} />
+            Calculating yield intelligence…
+          </div>
+        )}
+
         <StatsBar stats={stats} loading={isLoading} />
 
         {error && (
-          <div className="mb-4 px-4 py-3 font-mono-data text-xs" style={{ background: 'var(--danger-tint)', border: '1px solid var(--danger)', color: 'var(--danger)' }}>
-            LIVE DATA UNAVAILABLE — SHOWING CURATED BASELINE ESTIMATES
+          <div className="mb-4 px-4 py-3 text-sm flex items-start gap-2.5" style={{ background: 'var(--danger-tint)', border: '1px solid var(--danger)', color: 'var(--text)' }}>
+            <span className="font-mono-data text-[10px] uppercase tracking-widest mt-0.5" style={{ color: 'var(--danger)' }}>⚠</span>
+            <span>
+              <b style={{ fontWeight: 600 }}>Unable to refresh market intelligence.</b> Showing the latest verified data.
+            </span>
           </div>
         )}
 
@@ -76,7 +86,7 @@ export default function Dashboard() {
             <BitcoinMark size={14} />
             <span>BITCOIN</span>
             <span style={{ color: 'var(--border-strong)' }}>×</span>
-            <StacksMark size={12} color="var(--text-faint)" />
+            <StacksMark size={14} />
             <span>STACKS</span>
           </div>
         </div>

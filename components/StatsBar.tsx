@@ -2,6 +2,7 @@
 
 import { formatTvl, formatApy } from '@/lib/utils';
 import type { GlobalStats } from '@/lib/types';
+import DataConfidence from './DataConfidence';
 
 interface TickProps {
   label: string;
@@ -41,11 +42,16 @@ export default function StatsBar({ stats, loading }: StatsBarProps) {
       <Tick label="Best APY" value={formatApy(stats.bestApy)} accent="var(--gold)" />
       <Tick label="Safest APY" value={formatApy(stats.safestApy)} accent="var(--safe)" />
       <Tick label="Sources tracked" value={stats.activeSourceCount.toString()} />
-      <Tick
-        label="Data quality"
-        value={stats.estimatedCount > 0 ? `${stats.estimatedCount} est.` : 'all live'}
-        accent={stats.estimatedCount > 0 ? 'var(--caution)' : 'var(--safe)'}
-      />
+      <div className="flex-1 min-w-[140px] px-4 py-3" style={{ borderRight: '1px solid var(--border)' }}>
+        <div className="font-mono-data text-[10px] uppercase tracking-widest mb-1" style={{ color: 'var(--text-faint)' }}>
+          Data confidence
+        </div>
+        <DataConfidence
+          compact
+          liveCount={stats.activeSourceCount - stats.estimatedCount}
+          totalCount={stats.activeSourceCount}
+        />
+      </div>
     </div>
   );
 }
