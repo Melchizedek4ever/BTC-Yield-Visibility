@@ -2,15 +2,15 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Methodology — BTCFi Yield Intel',
-  description: 'How BTCFi Yield Intel scores and ranks Stacks yield opportunities: opportunity score, risk tiers, health score, and data sourcing.',
+  title: 'Methodology — BTC Yield Visibility',
+  description: 'How BTC Yield Visibility scores and ranks Stacks yield opportunities: opportunity score, risk tiers, health score, and data sourcing.',
 };
 
 const TIERS = [
-  { label: 'Conservative', color: '#22C55E', range: 'Risk ≤ 2.5', note: 'Core protocol / consensus-level staking, audited, minimal smart-contract surface.' },
-  { label: 'Balanced', color: '#EAB308', range: '2.5 – 4.5', note: 'Established DeFi with audits and healthy TVL; modest additional risk.' },
-  { label: 'Elevated', color: '#F97316', range: '4.5 – 6.5', note: 'Newer protocols, emission-driven yield, or moderate IL / contract risk.' },
-  { label: 'Aggressive', color: '#EF4444', range: '> 6.5', note: 'High APY dominated by token emissions, higher IL, unaudited or young protocols.' },
+  { label: 'Conservative', color: '#4C9E7C', range: 'Risk ≤ 2.5', note: 'Core protocol / consensus-level staking, audited, minimal smart-contract surface.' },
+  { label: 'Balanced', color: '#C4923F', range: '2.5 – 4.5', note: 'Established DeFi with audits and healthy TVL; modest additional risk.' },
+  { label: 'Elevated', color: '#C4753F', range: '4.5 – 6.5', note: 'Newer protocols, emission-driven yield, or moderate IL / contract risk.' },
+  { label: 'Aggressive', color: '#C15850', range: '> 6.5', note: 'High APY dominated by token emissions, higher IL, unaudited or young protocols.' },
 ];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -30,7 +30,7 @@ export default function MethodologyPage() {
           <div className="flex items-center gap-2">
             <span className="text-2xl">₿</span>
             <div className="font-bold text-base" style={{ color: 'var(--text)' }}>
-              BTCFi <span style={{ color: 'var(--orange)' }}>Yield Intel</span>
+              BTC Yield <span style={{ color: 'var(--text-faint)' }}>Visibility</span>
             </div>
           </div>
           <Link href="/" className="text-sm px-3 py-1.5 rounded-lg" style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }}>

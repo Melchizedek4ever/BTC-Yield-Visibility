@@ -1,33 +1,65 @@
 @import "tailwindcss";
 
 :root {
-  --orange: #FF5500;
-  --bg: #0E0E0E;
-  --surface: #161616;
-  --surface2: #1E1E1E;
-  --border: #2A2A2A;
-  --text: #F0F0F0;
-  --text-dim: #888888;
-  --green: #22C55E;
-  --yellow: #F59E0B;
-  --red: #EF4444;
-  --blue: #3B82F6;
+  /* Ground */
+  --bg: #0A0C10;
+  --surface: #12151B;
+  --surface2: #171C24;
+  --border: #232933;
+  --border-strong: #2E3542;
+
+  /* Text */
+  --text: #ECEEF3;
+  --text-dim: #8B93A3;
+  --text-faint: #545C6A;
+
+  /* Accent — spent once per screen, never decoratively */
+  --gold: #C9A24A;
+  --gold-dim: #8C7439;
+  --gold-tint: rgba(201, 162, 74, 0.10);
+  --gold-tint-strong: rgba(201, 162, 74, 0.18);
+
+  /* Semantic risk/status scale — desaturated, terminal-grade, never color-only */
+  --safe: #4C9E7C;
+  --safe-tint: rgba(76, 158, 124, 0.12);
+  --caution: #C4923F;
+  --caution-tint: rgba(196, 146, 63, 0.12);
+  --elevated: #C4753F;
+  --elevated-tint: rgba(196, 117, 63, 0.12);
+  --danger: #C15850;
+  --danger-tint: rgba(193, 88, 80, 0.12);
+  --info: #5A93C4;
+  --info-tint: rgba(90, 147, 196, 0.12);
+
+  /* Legacy aliases kept for any not-yet-migrated component */
+  --orange: var(--gold);
+  --green: var(--safe);
+  --yellow: var(--caution);
+  --red: var(--danger);
+  --blue: var(--info);
 }
 
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, 'SF Mono', Consolas, monospace;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 * {
   box-sizing: border-box;
+}
+
+.font-mono-data {
+  font-family: var(--font-geist-mono), ui-monospace, 'SF Mono', Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 ::-webkit-scrollbar {
@@ -42,33 +74,41 @@ body {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a3a;
+  background: var(--border-strong);
 }
 
-.pulse-green {
-  animation: pulse-green 2s infinite;
+/* Keyboard focus — always visible, never suppressed */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
-@keyframes pulse-green {
+.pulse-dot {
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
 
-/* Risk-heatmap rows: tint set inline per tier; brighten the whole row on hover
-   so the tint intensifies without washing out the (near-white) numbers. */
+/* Flat data rows — a subtle background lift on hover, no shadow, no translate.
+   Terminal density over card decoration. */
 .risk-row {
-  transition: filter 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color 0.12s ease;
 }
 .risk-row:hover {
-  filter: brightness(1.35) saturate(1.15);
-  box-shadow: inset 0 0 0 9999px rgba(255, 255, 255, 0.02);
+  background-color: var(--surface2) !important;
 }
 
-/* Card lift on hover */
+/* Flat panels — hairline border only, no shadow, no radius bounce on hover */
 .risk-card {
-  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
 }
 .risk-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  border-color: var(--border-strong);
+  background-color: var(--surface2);
 }

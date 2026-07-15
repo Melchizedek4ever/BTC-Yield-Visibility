@@ -20,7 +20,7 @@ interface DashboardState {
 }
 
 const DEFAULT_METRICS = new Set([
-  'tvlUsd', 'riskScore', 'healthScore', 'opportunityScore',
+  'riskExplanation', 'tvlUsd', 'riskScore', 'healthScore', 'opportunityScore',
   'ilRisk', 'strategy', 'lockupPeriod', 'audited',
 ]);
 

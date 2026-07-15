@@ -17,60 +17,54 @@ export function formatChange(val: number): string {
 export interface RiskTier {
   key: 'conservative' | 'balanced' | 'elevated' | 'aggressive';
   label: string;
-  /** Solid accent color (green → red heat ramp). */
+  /** Solid accent color (safe → danger heat ramp). */
   color: string;
   /** Low-alpha version of `color` for tinted backgrounds. */
   tint: string;
 }
 
 /**
- * Single source of truth for risk-tier color coding.
- * Green (safe) → yellow → orange → red (risky), based on the 1–10 risk score.
+ * Single source of truth for risk-tier color coding. Desaturated,
+ * terminal-grade tones — never neon — and always paired with a text
+ * label at the call site, never color alone.
  */
 export function riskTier(score: number): RiskTier {
-  if (score <= 2.5) return { key: 'conservative', label: 'Conservative', color: '#22C55E', tint: '#22C55E1A' };
-  if (score <= 4.5) return { key: 'balanced', label: 'Balanced', color: '#EAB308', tint: '#EAB3081A' };
-  if (score <= 6.5) return { key: 'elevated', label: 'Elevated', color: '#F97316', tint: '#F973161A' };
-  return { key: 'aggressive', label: 'Aggressive', color: '#EF4444', tint: '#EF44441A' };
+  if (score <= 2.5) return { key: 'conservative', label: 'Conservative', color: '#4C9E7C', tint: 'rgba(76,158,124,0.12)' };
+  if (score <= 4.5) return { key: 'balanced', label: 'Balanced', color: '#C4923F', tint: 'rgba(196,146,63,0.12)' };
+  if (score <= 6.5) return { key: 'elevated', label: 'Elevated', color: '#C4753F', tint: 'rgba(196,117,63,0.12)' };
+  return { key: 'aggressive', label: 'Aggressive', color: '#C15850', tint: 'rgba(193,88,80,0.12)' };
 }
 
-export const COMING_SOON_COLOR = '#64748B';
+export const COMING_SOON_COLOR = '#5F6672';
 
 export function riskColor(score: number): string {
   return riskTier(score).color;
 }
 
-/**
- * "Yield heat" ramp for APY — cool green (modest) → gold (hot), kept in a
- * green→gold family so it stays visually distinct from the risk red scale.
- */
-export function apyColor(apy: number): string {
-  if (apy < 5) return '#34D399';   // emerald — modest
-  if (apy < 12) return '#22C55E';  // green
-  if (apy < 25) return '#A3E635';  // lime
-  if (apy < 40) return '#FACC15';  // gold
-  return '#FBBF24';                // amber — hot
-}
-
 export function healthColor(score: number): string {
-  if (score >= 8) return '#22C55E';
-  if (score >= 6.5) return '#F59E0B';
-  return '#EF4444';
+  if (score >= 8) return '#4C9E7C';
+  if (score >= 6.5) return '#C4923F';
+  return '#C15850';
 }
 
+/**
+ * Opportunity score color. Gold is spent once per screen — only a
+ * genuine top-tier score (the Top Pick threshold) earns it. Everything
+ * else stays neutral so gold keeps meaning something when it appears.
+ */
 export function opportunityColor(score: number): string {
-  if (score >= 8) return '#22C55E';
-  if (score >= 6.5) return '#F59E0B';
-  return '#FF5500';
+  if (score >= 8) return '#C9A24A';
+  if (score >= 6.5) return '#8B93A3';
+  return '#545C6A';
 }
 
 export function ilRiskColor(il: string): string {
   switch (il) {
-    case 'None': return '#22C55E';
-    case 'Low': return '#F59E0B';
-    case 'Medium': return '#FF5500';
-    case 'High': return '#EF4444';
-    default: return '#888888';
+    case 'None': return '#4C9E7C';
+    case 'Low': return '#C4923F';
+    case 'Medium': return '#C4753F';
+    case 'High': return '#C15850';
+    default: return '#545C6A';
   }
 }
 
@@ -83,4 +77,16 @@ export function timeAgo(dateStr: string): string {
 
 export function isTopPick(opportunityScore: number, riskScore: number): boolean {
   return opportunityScore >= 8.0 && riskScore <= 4.0;
+}
+
+/**
+ * A 1-2 letter mark derived from a protocol's short name, used in place
+ * of emoji icons. Deterministic, licensing-free, and swappable for a
+ * real logo later with no layout change.
+ */
+export function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
 }
