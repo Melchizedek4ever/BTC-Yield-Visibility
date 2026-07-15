@@ -4,6 +4,7 @@ import { useDashboardStore } from '@/lib/store';
 import { timeAgo } from '@/lib/utils';
 import { BitcoinMark } from './icons/BitcoinMark';
 import { StacksMark } from './icons/StacksMark';
+import DataConfidence from './DataConfidence';
 
 interface HeaderProps {
   lastUpdated?: string;
@@ -13,18 +14,6 @@ interface HeaderProps {
 
 export default function Header({ lastUpdated, liveCount = 0, totalCount = 0 }: HeaderProps) {
   const { mode, setMode } = useDashboardStore();
-
-  const hasData = totalCount > 0;
-  const isLive = hasData && liveCount === totalCount;
-  const isPartiallyLive = hasData && liveCount > 0 && liveCount < totalCount;
-  const statusColor = !hasData ? 'var(--text-faint)' : isLive ? 'var(--safe)' : 'var(--caution)';
-  const statusLabel = !hasData
-    ? 'CONNECTING'
-    : isLive
-    ? 'LIVE'
-    : isPartiallyLive
-    ? `${liveCount}/${totalCount} LIVE`
-    : 'ESTIMATED';
 
   return (
     <header style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }} className="sticky top-0 z-50">
@@ -38,7 +27,7 @@ export default function Header({ lastUpdated, liveCount = 0, totalCount = 0 }: H
                 style={{ background: 'var(--surface)', border: '1px solid var(--border-strong)' }}
                 title="Powered by Stacks"
               >
-                <StacksMark size={10} color="var(--text)" />
+                <StacksMark size={11} />
               </div>
             </div>
             <div>
@@ -50,13 +39,8 @@ export default function Header({ lastUpdated, liveCount = 0, totalCount = 0 }: H
               </div>
             </div>
           </div>
-          <div
-            className="flex items-center gap-1.5 ml-2 px-2 py-0.5 font-mono-data text-[11px]"
-            style={{ border: `1px solid ${statusColor}44`, color: statusColor }}
-            title={hasData ? `${liveCount} of ${totalCount} sources on live data; the rest are curated estimates.` : undefined}
-          >
-            <span className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: statusColor }} />
-            {statusLabel}
+          <div className="ml-2">
+            <DataConfidence liveCount={liveCount} totalCount={totalCount} lastUpdated={lastUpdated} />
           </div>
           {lastUpdated && (
             <span className="font-mono-data text-[11px] hidden sm:block" style={{ color: 'var(--text-faint)' }}>

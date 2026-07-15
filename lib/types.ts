@@ -1,3 +1,11 @@
+export interface RiskFactorView {
+  key: 'smartContract' | 'liquidity' | 'protocolAge' | 'yieldSustainability';
+  label: string;
+  /** 1 (safest) to 10 (riskiest). */
+  score: number;
+  rationale: string;
+}
+
 export interface YieldProtocol {
   id: string;
   name: string;
@@ -42,6 +50,8 @@ export interface YieldProtocol {
 
   /** Plain-language rationale from the risk engine — why this is scored where it is. */
   riskExplanation?: string;
+  /** The risk engine's explainable sub-factors — same data behind riskExplanation, broken out. */
+  riskFactors?: RiskFactorView[];
 
   // Lifecycle. Defaults to 'live' when omitted.
   status?: 'live' | 'coming-soon';

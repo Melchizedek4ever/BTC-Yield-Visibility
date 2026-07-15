@@ -7,7 +7,7 @@ import type { NormalizedOpportunity, ProtocolAdapter, EnrichmentAdapter } from '
 import type { RiskAssessment } from '@/domain/riskAssessment';
 import type { RiskAdjustedYieldScore } from '@/domain/score';
 import type { YieldOpportunity } from '@/domain/yieldOpportunity';
-import type { YieldProtocol, GlobalStats } from '@/lib/types';
+import type { YieldProtocol, GlobalStats, RiskFactorView } from '@/lib/types';
 
 /**
  * Yield Intelligence Service — the single orchestration point between the API
@@ -101,6 +101,16 @@ export async function getOpportunities(): Promise<YieldOpportunity[]> {
 // so the UI is untouched by this refactor. When the frontend migrates to consume
 // YieldOpportunity directly, this façade can be deleted.
 
+function toRiskFactors(o: YieldOpportunity): RiskFactorView[] {
+  const r = o.risk;
+  return [
+    { key: 'smartContract', label: 'Smart Contract', score: r.smartContractRisk.score, rationale: r.smartContractRisk.rationale },
+    { key: 'liquidity', label: 'Liquidity', score: r.liquidityRisk.score, rationale: r.liquidityRisk.rationale },
+    { key: 'protocolAge', label: 'Protocol Age', score: r.protocolAgeRisk.score, rationale: r.protocolAgeRisk.rationale },
+    { key: 'yieldSustainability', label: 'Yield Sustainability', score: r.yieldSustainabilityRisk.score, rationale: r.yieldSustainabilityRisk.rationale },
+  ];
+}
+
 function toLegacy(o: YieldOpportunity): YieldProtocol {
   return {
     id: o.id,
@@ -138,6 +148,7 @@ function toLegacy(o: YieldOpportunity): YieldProtocol {
     scoresEstimated: o.scoresEstimated,
     isStale: o.isStale,
     riskExplanation: o.risk.explanation,
+    riskFactors: o.status === 'coming-soon' ? undefined : toRiskFactors(o),
     status: o.status,
     launchTarget: o.launchTarget,
     capacityNote: o.capacityNote,
