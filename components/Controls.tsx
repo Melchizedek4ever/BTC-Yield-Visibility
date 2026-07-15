@@ -23,11 +23,11 @@ export default function Controls() {
           <button
             key={cat}
             onClick={() => setCategory(cat)}
-            className="px-3 py-1.5 rounded-full text-sm font-medium transition-all"
+            className="font-mono-data px-3 py-1.5 text-xs uppercase tracking-wide transition-colors"
             style={{
-              background: category === cat ? 'var(--orange)' : 'var(--surface2)',
-              color: category === cat ? '#fff' : 'var(--text-dim)',
-              border: `1px solid ${category === cat ? 'var(--orange)' : 'var(--border)'}`,
+              background: category === cat ? 'var(--gold-tint)' : 'transparent',
+              color: category === cat ? 'var(--gold)' : 'var(--text-dim)',
+              border: `1px solid ${category === cat ? 'var(--gold-dim)' : 'var(--border-strong)'}`,
             }}
           >
             {cat}
@@ -35,15 +35,15 @@ export default function Controls() {
         ))}
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
-        <span className="text-xs" style={{ color: 'var(--text-dim)' }}>Sort:</span>
+      <div className="sm:ml-auto flex items-center gap-2">
+        <span className="font-mono-data text-xs uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>Sort</span>
         <select
           value={sortKey}
           onChange={e => setSortKey(e.target.value as SortKey)}
-          className="text-sm rounded-lg px-2 py-1.5 outline-none cursor-pointer"
+          className="font-mono-data text-xs px-2 py-1.5 outline-none cursor-pointer"
           style={{
             background: 'var(--surface2)',
-            border: '1px solid var(--border)',
+            border: '1px solid var(--border-strong)',
             color: 'var(--text)',
           }}
         >
@@ -53,9 +53,10 @@ export default function Controls() {
         </select>
         <button
           onClick={() => useDashboardStore.getState().setSortKey(sortKey)}
-          className="px-2 py-1.5 rounded-lg text-sm"
-          style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}
+          className="px-2 py-1.5 text-sm"
+          style={{ background: 'var(--surface2)', border: '1px solid var(--border-strong)', color: 'var(--text-dim)' }}
           title={sortDesc ? 'Descending' : 'Ascending'}
+          aria-label={sortDesc ? 'Sort descending' : 'Sort ascending'}
         >
           {sortDesc ? '↓' : '↑'}
         </button>

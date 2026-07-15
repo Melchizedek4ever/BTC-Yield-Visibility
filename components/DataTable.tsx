@@ -1,7 +1,7 @@
 'use client';
 
 import { useDashboardStore } from '@/lib/store';
-import { formatTvl, formatApy, apyColor, riskColor, healthColor, opportunityColor, ilRiskColor, isTopPick, riskTier, COMING_SOON_COLOR } from '@/lib/utils';
+import { formatTvl, formatApy, riskColor, healthColor, opportunityColor, ilRiskColor, isTopPick, riskTier, initials, COMING_SOON_COLOR } from '@/lib/utils';
 import type { YieldProtocol, SortKey } from '@/lib/types';
 
 interface DataTableProps {
@@ -10,11 +10,12 @@ interface DataTableProps {
 }
 
 const COL_DEFS: { key: SortKey | string; label: string; metricKey?: string; sortable?: boolean }[] = [
-  { key: 'name', label: 'Protocol', sortable: false },
+  { key: 'name', label: 'Source', sortable: false },
   { key: 'category', label: 'Type', sortable: false },
   { key: 'apy', label: 'APY', sortable: true },
-  { key: 'tvlUsd', label: 'TVL', sortable: true, metricKey: 'tvlUsd' },
   { key: 'riskScore', label: 'Risk', sortable: true, metricKey: 'riskScore' },
+  { key: 'riskExplanation', label: 'Why', metricKey: 'riskExplanation' },
+  { key: 'tvlUsd', label: 'TVL', sortable: true, metricKey: 'tvlUsd' },
   { key: 'healthScore', label: 'Health', sortable: true, metricKey: 'healthScore' },
   { key: 'opportunityScore', label: 'Opportunity', sortable: true, metricKey: 'opportunityScore' },
   { key: 'ilRisk', label: 'IL Risk', metricKey: 'ilRisk' },
@@ -26,15 +27,15 @@ const COL_DEFS: { key: SortKey | string; label: string; metricKey?: string; sort
 function MiniBar({ value, color }: { value: number; color: string }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span style={{ color, fontWeight: 700 }}>{value.toFixed(1)}</span>
-      <div className="h-1 w-16 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
-        <div className="h-full rounded-full" style={{ width: `${(value / 10) * 100}%`, background: color }} />
+      <span className="font-mono-data" style={{ color, fontWeight: 700 }}>{value.toFixed(1)}</span>
+      <div className="h-1 w-14" style={{ background: 'var(--surface2)' }}>
+        <div className="h-full" style={{ width: `${(value / 10) * 100}%`, background: color }} />
       </div>
     </div>
   );
 }
 
-const dim = <span style={{ color: 'var(--text-dim)' }}>—</span>;
+const dim = <span style={{ color: 'var(--text-faint)' }}>—</span>;
 
 export default function DataTable({ protocols, loading }: DataTableProps) {
   const { category, sortKey, sortDesc, setSortKey, visibleMetrics } = useDashboardStore();
@@ -53,7 +54,7 @@ export default function DataTable({ protocols, loading }: DataTableProps) {
   });
 
   if (loading) {
-    return <div className="h-64 rounded-xl animate-pulse" style={{ background: 'var(--surface)' }} />;
+    return <div className="h-64 animate-pulse" style={{ background: 'var(--surface)' }} />;
   }
 
   // Renders the cell content for a given column + protocol. Header and body both
@@ -65,69 +66,81 @@ export default function DataTable({ protocols, loading }: DataTableProps) {
         const accent = comingSoon ? COMING_SOON_COLOR : tier.color;
         const topPick = !comingSoon && isTopPick(p.opportunityScore, p.riskScore);
         return (
-          <div className="flex items-center gap-2">
-            <span style={{ color: comingSoon ? 'var(--orange)' : undefined }}>{p.icon}</span>
+          <div className="flex items-center gap-2.5">
+            <span
+              className="font-mono-data text-[10px] font-bold w-6 h-6 flex items-center justify-center flex-none"
+              style={{ border: `1px solid ${topPick ? 'var(--gold)' : 'var(--border-strong)'}`, color: topPick ? 'var(--gold)' : 'var(--text-dim)' }}
+              aria-hidden="true"
+            >
+              {initials(p.shortName)}
+            </span>
             <div>
-              <div className="font-semibold flex items-center gap-1.5" style={{ color: 'var(--text)' }}>
+              <a
+                href={comingSoon ? p.websiteUrl : p.appUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold hover:underline"
+                style={{ color: 'var(--text)' }}
+              >
                 {p.shortName}
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
-                  style={{ background: accent + '26', color: accent, border: `1px solid ${accent}66` }}>
-                  {comingSoon ? 'Unrated' : tier.label}
+              </a>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="font-mono-data text-[9.5px] px-1.5 py-0.5 font-semibold" style={{ color: accent, border: `1px solid ${accent}66` }}>
+                  {comingSoon ? 'UNRATED' : tier.label.toUpperCase()}
                 </span>
+                {comingSoon ? (
+                  <span className="font-mono-data text-[9.5px]" style={{ color: 'var(--text-faint)' }}>{p.launchTarget}</span>
+                ) : topPick && (
+                  <span className="font-mono-data text-[9.5px] px-1.5 py-0.5 font-semibold" style={{ color: 'var(--gold)', border: '1px solid var(--gold-dim)' }}>
+                    TOP PICK
+                  </span>
+                )}
               </div>
-              {comingSoon ? (
-                <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: COMING_SOON_COLOR, color: '#fff' }}>
-                  Coming Soon · {p.launchTarget}
-                </span>
-              ) : topPick && (
-                <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'var(--orange)', color: '#fff' }}>
-                  Top Pick
-                </span>
-              )}
             </div>
           </div>
         );
       }
       case 'category':
         return (
-          <span className="px-2 py-0.5 rounded-full text-xs whitespace-nowrap"
-            style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}>
-            {p.category}
+          <span className="font-mono-data text-[10px] px-2 py-0.5 whitespace-nowrap" style={{ color: 'var(--text-dim)', border: '1px solid var(--border-strong)' }}>
+            {p.category.toUpperCase()}
           </span>
         );
       case 'apy':
         return (
           <div>
             <div className="flex items-center gap-1.5">
-              <div className="font-bold text-lg" style={{ color: comingSoon ? 'var(--text-dim)' : apyColor(p.apy) }}>
+              <div className="font-mono-data text-lg" style={{ color: comingSoon ? 'var(--text-dim)' : tier.color }}>
                 {comingSoon ? `~${formatApy(p.apy)}` : formatApy(p.apy)}
               </div>
               {p.scoresEstimated && !comingSoon && (
-                <span
-                  className="px-1.5 py-0.5 rounded-full text-xs"
-                  style={{ background: '#2a1a00', color: '#F59E0B', border: '1px solid #F59E0B22' }}
-                  title="No live data available — showing curated baseline values."
-                >
-                  est.
+                <span className="font-mono-data text-[9px] px-1.5 py-0.5" style={{ color: 'var(--caution)', border: '1px solid var(--caution)' }} title="No live data available — showing curated baseline values.">
+                  EST.
                 </span>
               )}
               {p.isStale && !comingSoon && (
-                <span
-                  className="px-1.5 py-0.5 rounded-full text-xs"
-                  style={{ background: '#0a1a2e', color: '#3B82F6', border: '1px solid #3B82F622' }}
-                  title="Live APY looked anomalous — showing the last known good value instead."
-                >
-                  stale
+                <span className="font-mono-data text-[9px] px-1.5 py-0.5" style={{ color: 'var(--info)', border: '1px solid var(--info)' }} title="Live APY looked anomalous — showing the last known good value instead.">
+                  STALE
                 </span>
               )}
             </div>
-            <div className="text-xs" style={{ color: 'var(--text-dim)' }}>
+            <div className="font-mono-data text-[10.5px]" style={{ color: 'var(--text-faint)' }}>
               {comingSoon ? 'target' : `${p.apyRange.min}–${p.apyRange.max}%`}
             </div>
           </div>
         );
+      case 'riskExplanation':
+        return comingSoon ? dim : (
+          <span
+            className="text-[11.5px]"
+            title={p.riskExplanation}
+            style={{ color: 'var(--text-dim)', display: 'inline-block', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          >
+            {p.riskExplanation ?? '—'}
+          </span>
+        );
       case 'tvlUsd':
-        return <span className="font-medium">{comingSoon ? dim : formatTvl(p.tvlUsd)}</span>;
+        return <span className="font-mono-data font-medium">{comingSoon ? dim : formatTvl(p.tvlUsd)}</span>;
       case 'riskScore':
         return <MiniBar value={p.riskScore} color={riskColor(p.riskScore)} />;
       case 'healthScore':
@@ -145,7 +158,7 @@ export default function DataTable({ protocols, loading }: DataTableProps) {
           </span>
         );
       case 'audited':
-        return comingSoon ? dim : <span style={{ color: p.audited ? '#22C55E' : '#EF4444' }}>{p.audited ? '✓' : '✗'}</span>;
+        return comingSoon ? dim : <span style={{ color: p.audited ? 'var(--safe)' : 'var(--danger)' }}>{p.audited ? '✓' : '✗'}</span>;
       case 'earnAsset':
         return <span className="text-xs" style={{ color: 'var(--text-dim)' }}>{p.earnAsset}</span>;
       default:
@@ -154,16 +167,16 @@ export default function DataTable({ protocols, loading }: DataTableProps) {
   }
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+    <div style={{ border: '1px solid var(--border)' }}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border)' }}>
+            <tr style={{ background: 'var(--surface2)', borderBottom: '1px solid var(--border-strong)' }}>
               {visibleCols.map(col => (
                 <th
                   key={col.key}
-                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest whitespace-nowrap"
-                  style={{ color: sortKey === col.key ? 'var(--orange)' : 'var(--text-dim)', cursor: col.sortable ? 'pointer' : 'default', letterSpacing: '0.5px' }}
+                  className="font-mono-data px-4 py-3 text-left text-[10.5px] font-semibold uppercase tracking-widest whitespace-nowrap"
+                  style={{ color: sortKey === col.key ? 'var(--gold)' : 'var(--text-faint)', cursor: col.sortable ? 'pointer' : 'default' }}
                   onClick={() => col.sortable && setSortKey(col.key as SortKey)}
                 >
                   {col.label}
@@ -180,15 +193,14 @@ export default function DataTable({ protocols, loading }: DataTableProps) {
               return (
                 <tr
                   key={p.id}
-                  className="risk-row cursor-pointer"
+                  className="risk-row"
                   data-tier={comingSoon ? 'soon' : tier.key}
                   style={{
-                    background: (comingSoon ? COMING_SOON_COLOR : tier.color) + '14',
+                    background: accent + '0D',
                     borderBottom: '1px solid var(--border)',
-                    borderLeft: `4px solid ${accent}`,
-                    opacity: comingSoon ? 0.9 : 1,
+                    borderLeft: `3px solid ${accent}`,
+                    opacity: comingSoon ? 0.85 : 1,
                   }}
-                  onClick={() => window.open(comingSoon ? p.websiteUrl : p.appUrl, '_blank', 'noopener,noreferrer')}
                 >
                   {visibleCols.map(col => (
                     <td key={col.key} className="px-4 py-3 whitespace-nowrap">

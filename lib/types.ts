@@ -40,6 +40,9 @@ export interface YieldProtocol {
   isStale?: boolean;
   scoresEstimated?: boolean;
 
+  /** Plain-language rationale from the risk engine — why this is scored where it is. */
+  riskExplanation?: string;
+
   // Lifecycle. Defaults to 'live' when omitted.
   status?: 'live' | 'coming-soon';
   launchTarget?: string;   // e.g. "Q3 2026" — only for coming-soon sources
@@ -55,4 +58,6 @@ export interface GlobalStats {
   safestApy: number;
   activeSourceCount: number;
   upcomingCount: number;
+  /** Live sources currently running on curated estimates rather than a live match. */
+  estimatedCount: number;
 }

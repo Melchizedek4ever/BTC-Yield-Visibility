@@ -27,7 +27,7 @@ export default function CardsGrid({ protocols, loading }: CardsGridProps) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-72 rounded-xl animate-pulse" style={{ background: 'var(--surface)' }} />
+          <div key={i} className="h-72 animate-pulse" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }} />
         ))}
       </div>
     );

@@ -137,6 +137,7 @@ function toLegacy(o: YieldOpportunity): YieldProtocol {
     lastUpdated: o.updatedAt,
     scoresEstimated: o.scoresEstimated,
     isStale: o.isStale,
+    riskExplanation: o.risk.explanation,
     status: o.status,
     launchTarget: o.launchTarget,
     capacityNote: o.capacityNote,
@@ -151,6 +152,7 @@ function buildStats(opps: YieldOpportunity[], chainTvl: number): GlobalStats {
     safestApy: Math.max(...live.filter(o => o.risk.overallScore <= 3).map(o => o.apy), 0),
     activeSourceCount: live.length,
     upcomingCount: opps.length - live.length,
+    estimatedCount: live.filter(o => o.scoresEstimated).length,
   };
 }
 

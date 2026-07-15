@@ -3,6 +3,7 @@
 import { useDashboardStore } from '@/lib/store';
 
 const TOGGLEABLE_METRICS = [
+  { key: 'riskExplanation', label: 'Why' },
   { key: 'tvlUsd', label: 'TVL' },
   { key: 'riskScore', label: 'Risk Score' },
   { key: 'healthScore', label: 'Health Score' },
@@ -17,23 +18,23 @@ export default function MetricToggles() {
   const { visibleMetrics, toggleMetric } = useDashboardStore();
 
   return (
-    <div className="flex gap-2 flex-wrap mb-5">
-      <span className="text-xs self-center mr-1" style={{ color: 'var(--text-dim)' }}>Metrics:</span>
+    <div className="flex gap-1.5 flex-wrap mb-5">
+      <span className="font-mono-data text-xs uppercase tracking-wide self-center mr-1" style={{ color: 'var(--text-faint)' }}>Metrics</span>
       {TOGGLEABLE_METRICS.map(m => {
         const active = visibleMetrics.has(m.key);
         return (
           <button
             key={m.key}
             onClick={() => toggleMetric(m.key)}
-            className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+            className="font-mono-data px-2.5 py-1 text-xs transition-colors"
             style={{
-              background: active ? '#1a2e1a' : 'var(--surface2)',
-              color: active ? 'var(--green)' : 'var(--text-dim)',
-              border: `1px solid ${active ? '#22C55E44' : 'var(--border)'}`,
-              opacity: active ? 1 : 0.6,
+              background: active ? 'var(--surface2)' : 'transparent',
+              color: active ? 'var(--text)' : 'var(--text-faint)',
+              border: `1px solid ${active ? 'var(--border-strong)' : 'var(--border)'}`,
             }}
+            aria-pressed={active}
           >
-            {active ? '✓ ' : ''}{m.label}
+            {m.label}
           </button>
         );
       })}

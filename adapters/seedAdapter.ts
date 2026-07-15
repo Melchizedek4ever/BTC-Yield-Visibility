@@ -57,7 +57,10 @@ function normalize(p: YieldProtocol): NormalizedOpportunity {
     launchTarget: p.launchTarget,
     capacityNote: p.capacityNote,
     scoresEstimated: p.scoresEstimated,
-    updatedAt: p.lastUpdated,
+    // Stamped fresh on every fetch (not the seed's static literal) so the
+    // header's "updated Xs ago" reflects when this refresh cycle actually
+    // ran, even for sources that are running on curated baselines.
+    updatedAt: new Date().toISOString(),
   };
 }
 
