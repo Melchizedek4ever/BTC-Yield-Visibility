@@ -36,13 +36,13 @@ export default function OpengraphImage() {
             B
           </div>
           <div style={{ display: 'flex', fontSize: 30, color: '#545C6A', letterSpacing: 4 }}>
-            STACKS BITCOIN YIELD INTELLIGENCE
+            STACKS ECOSYSTEM
           </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', fontSize: 74, fontWeight: 700, color: '#ECEEF3', letterSpacing: -2 }}>
-            BTC Yield Visibility
+            Bitcoin Yield Intelligence
           </div>
           <div style={{ display: 'flex', fontSize: 30, color: '#8B93A3', maxWidth: 900 }}>
             Risk-adjusted Bitcoin yield intelligence for the Stacks ecosystem — explainable scoring, not just an APY table.

@@ -20,22 +20,22 @@ export default function Header({ lastUpdated, liveCount = 0, totalCount = 0 }: H
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="relative w-8 h-8 flex-none">
-              <BitcoinMark size={32} />
+            <div className="relative w-11 h-11 flex-none">
+              <BitcoinMark size={44} />
               <div
-                className="absolute -bottom-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full"
-                style={{ background: 'var(--surface)', border: '1px solid var(--border-strong)' }}
+                className="absolute -bottom-1 -right-1 w-[22px] h-[22px] flex items-center justify-center rounded-full"
+                style={{ background: 'var(--surface)', border: '1.5px solid var(--border-strong)' }}
                 title="Powered by Stacks"
               >
-                <StacksMark size={11} />
+                <StacksMark size={15} />
               </div>
             </div>
             <div>
               <div className="font-semibold text-[15px] tracking-tight" style={{ color: 'var(--text)' }}>
-                BTC Yield <span style={{ color: 'var(--text-faint)' }}>Visibility</span>
+                Bitcoin Yield <span style={{ color: 'var(--text-faint)' }}>Intelligence</span>
               </div>
               <div className="font-mono-data text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-faint)' }}>
-                Stacks Bitcoin Yield Intelligence
+                Stacks Ecosystem · Risk-Adjusted Yield
               </div>
             </div>
           </div>

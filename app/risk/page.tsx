@@ -3,7 +3,7 @@ import Link from 'next/link';
 import LegalShell, { Section, Callout } from '@/components/legal/LegalShell';
 
 export const metadata: Metadata = {
-  title: 'Risk Disclosure — BTC Yield Visibility',
+  title: 'Risk Disclosure — Bitcoin Yield Intelligence',
   description:
     'The risks of Bitcoin, DeFi, and yield strategies on Stacks. Digital assets are high-risk and you can lose everything. Informational only — not financial advice.',
 };
@@ -16,8 +16,8 @@ export default function RiskPage() {
       lastUpdated="18 July 2026"
     >
       <Callout>
-        <strong>Digital assets are high-risk. You can lose some or all of your money.</strong> BTC
-        Yield Visibility is an informational tool only — it is not financial, investment, legal, or
+        <strong>Digital assets are high-risk. You can lose some or all of your money.</strong> Bitcoin
+        Yield Intelligence is an informational tool only — it is not financial, investment, legal, or
         tax advice, and it does not custody your funds or execute any transaction for you. Never risk
         more than you can afford to lose.
       </Callout>
