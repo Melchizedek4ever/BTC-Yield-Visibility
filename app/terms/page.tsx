@@ -8,18 +8,6 @@ export const metadata: Metadata = {
     'The terms governing your use of BTC Yield Visibility, an informational Bitcoin/Stacks yield dashboard. Informational only — not financial advice.',
 };
 
-// Bracketed values to be confirmed with your own counsel before relying on them.
-function Fill({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className="px-1.5 py-0.5 rounded font-mono-data text-xs"
-      style={{ background: 'var(--gold-tint)', color: 'var(--gold)', border: '1px solid var(--gold-dim)' }}
-    >
-      {children}
-    </span>
-  );
-}
-
 export default function TermsPage() {
   return (
     <LegalShell
@@ -181,8 +169,8 @@ export default function TermsPage() {
         </p>
         <p>
           To the extent any liability cannot be excluded, the Operator&apos;s total aggregate
-          liability arising out of or relating to the Service is limited to{' '}
-          <Fill>[[ USD 100 or another cap — confirm with counsel ]]</Fill>.
+          liability arising out of or relating to the Service is limited to one hundred US dollars
+          (USD 100).
         </p>
       </Section>
 
@@ -205,13 +193,13 @@ export default function TermsPage() {
 
       <Section title="15. Governing law & dispute resolution">
         <p>
-          These Terms are governed by the laws of{' '}
-          <Fill>[[ your country/state of residence ]]</Fill>, without regard to its conflict-of-laws
-          rules. The parties will first attempt in good faith to resolve any dispute informally by
-          contacting us at the address below. Any dispute not resolved informally will be subject to
-          the exclusive jurisdiction of the courts of{' '}
-          <Fill>[[ venue — or an arbitration clause, confirm with counsel ]]</Fill>. Nothing here
-          limits any non-waivable rights you have under the mandatory law of your place of residence.
+          These Terms are governed by the laws of the State of Delaware, United States, without
+          regard to its conflict-of-laws rules. The parties will first attempt in good faith to
+          resolve any dispute informally by contacting us at the address below. Any dispute not
+          resolved informally will be subject to the exclusive jurisdiction of the state and federal
+          courts located in the State of Delaware, and you consent to personal jurisdiction there.
+          Nothing here limits any non-waivable rights you have under the mandatory law of your place
+          of residence.
         </p>
       </Section>
 
