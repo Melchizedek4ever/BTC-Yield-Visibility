@@ -30,7 +30,7 @@ export default function TermsPage() {
           independent, informational website operated by Ezra Kewa as an individual
           (&ldquo;Operator&rdquo;). These Terms of Service (&ldquo;Terms&rdquo;) govern your access to
           and use of the website at{' '}
-          <span className="font-mono-data" style={{ color: 'var(--text)' }}>bitcoin-yield-intelligence.vercel.app</span>{' '}
+          <span className="font-mono-data" style={{ color: 'var(--text)' }}>btc-yield-visibility.vercel.app</span>{' '}
           and any related pages.
         </p>
         <p>
