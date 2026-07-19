@@ -3,20 +3,20 @@ import Link from 'next/link';
 import LegalShell, { Section, Callout } from '@/components/legal/LegalShell';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — BTC Yield Visibility',
+  title: 'Terms of Service — Bitcoin Yield Intelligence',
   description:
-    'The terms governing your use of BTC Yield Visibility, an informational Bitcoin/Stacks yield dashboard. Informational only — not financial advice.',
+    'The terms governing your use of Bitcoin Yield Intelligence, an informational Bitcoin/Stacks yield dashboard. Informational only — not financial advice.',
 };
 
 export default function TermsPage() {
   return (
     <LegalShell
       title="Terms of Service"
-      subtitle="The agreement between you and BTC Yield Visibility."
+      subtitle="The agreement between you and Bitcoin Yield Intelligence."
       lastUpdated="18 July 2026"
     >
       <Callout>
-        BTC Yield Visibility is an <strong>informational tool</strong>. It publishes data and computed
+        Bitcoin Yield Intelligence is an <strong>informational tool</strong>. It publishes data and computed
         rankings about Bitcoin/Stacks yield opportunities. It is <strong>not</strong> financial,
         investment, legal, or tax advice, it does not handle your funds, and it never executes
         transactions on your behalf. Please also read our{' '}
@@ -26,11 +26,11 @@ export default function TermsPage() {
 
       <Section title="1. Who we are & acceptance of these Terms">
         <p>
-          BTC Yield Visibility (the &ldquo;Service&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;) is an
+          Bitcoin Yield Intelligence (the &ldquo;Service&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;) is an
           independent, informational website operated by Ezra Kewa as an individual
           (&ldquo;Operator&rdquo;). These Terms of Service (&ldquo;Terms&rdquo;) govern your access to
           and use of the website at{' '}
-          <span className="font-mono-data" style={{ color: 'var(--text)' }}>btc-yield-visibility.vercel.app</span>{' '}
+          <span className="font-mono-data" style={{ color: 'var(--text)' }}>bitcoin-yield-intelligence.vercel.app</span>{' '}
           and any related pages.
         </p>
         <p>
@@ -211,7 +211,7 @@ export default function TermsPage() {
       </Section>
 
       <div className="mt-10 pt-6 text-xs" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-dim)' }}>
-        BTC Yield Visibility — Stacks Bitcoin Yield Intelligence · Informational only · APY figures are
+        Bitcoin Yield Intelligence — Stacks Ecosystem · Informational only · APY figures are
         variable and not guaranteed · This is not financial advice.
       </div>
     </LegalShell>

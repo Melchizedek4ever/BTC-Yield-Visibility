@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Methodology — BTC Yield Visibility',
-  description: 'How BTC Yield Visibility scores and ranks Stacks yield opportunities: opportunity score, risk tiers, health score, and data sourcing.',
+  title: 'Methodology — Bitcoin Yield Intelligence',
+  description: 'How Bitcoin Yield Intelligence scores and ranks Stacks yield opportunities: opportunity score, risk tiers, health score, and data sourcing.',
 };
 
 const TIERS = [
@@ -30,7 +30,7 @@ export default function MethodologyPage() {
           <div className="flex items-center gap-2">
             <span className="text-2xl">₿</span>
             <div className="font-bold text-base" style={{ color: 'var(--text)' }}>
-              BTC Yield <span style={{ color: 'var(--text-faint)' }}>Visibility</span>
+              Bitcoin Yield <span style={{ color: 'var(--text-faint)' }}>Intelligence</span>
             </div>
           </div>
           <Link href="/" className="text-sm px-3 py-1.5 rounded-lg" style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }}>
@@ -119,7 +119,7 @@ export default function MethodologyPage() {
         </Section>
 
         <div className="mt-10 pt-6 text-xs" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-dim)' }}>
-          BTCFi Yield Intel — Stacks Ecosystem Dashboard · APY figures are variable and not guaranteed. This is not financial advice.
+          Bitcoin Yield Intelligence — Stacks Ecosystem Dashboard · APY figures are variable and not guaranteed. This is not financial advice.
         </div>
       </main>
     </div>

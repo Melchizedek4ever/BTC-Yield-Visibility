@@ -3,9 +3,9 @@ import Link from 'next/link';
 import LegalShell, { Section, Callout } from '@/components/legal/LegalShell';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — BTC Yield Visibility',
+  title: 'Privacy Policy — Bitcoin Yield Intelligence',
   description:
-    'How BTC Yield Visibility handles data. We collect no personal information: no accounts, no wallet connection, no identifying cookies — only anonymous, aggregate analytics.',
+    'How Bitcoin Yield Intelligence handles data. We collect no personal information: no accounts, no wallet connection, no identifying cookies — only anonymous, aggregate analytics.',
 };
 
 export default function PrivacyPage() {
@@ -16,17 +16,17 @@ export default function PrivacyPage() {
       lastUpdated="18 July 2026"
     >
       <Callout>
-        <strong>We do not collect personal information.</strong> BTC Yield Visibility has no accounts,
+        <strong>We do not collect personal information.</strong> Bitcoin Yield Intelligence has no accounts,
         no login, no wallet connection, and no forms. We do not use advertising or cross-site tracking
         cookies, and we never sell or share personal data — because we do not have any.
       </Callout>
 
       <Section title="1. Who we are">
         <p>
-          BTC Yield Visibility (the &ldquo;Service&rdquo;) is an independent informational website
+          Bitcoin Yield Intelligence (the &ldquo;Service&rdquo;) is an independent informational website
           operated by Ezra Kewa as an individual (the &ldquo;Operator&rdquo;, &ldquo;we&rdquo;,
           &ldquo;us&rdquo;). This policy explains how the Service handles information when you visit{' '}
-          <span className="font-mono-data" style={{ color: 'var(--text)' }}>btc-yield-visibility.vercel.app</span>.
+          <span className="font-mono-data" style={{ color: 'var(--text)' }}>bitcoin-yield-intelligence.vercel.app</span>.
         </p>
       </Section>
 

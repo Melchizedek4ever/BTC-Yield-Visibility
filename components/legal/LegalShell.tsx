@@ -27,7 +27,7 @@ export default function LegalShell({
           <Link href="/" className="flex items-center gap-2">
             <span className="text-2xl">₿</span>
             <div className="font-bold text-base" style={{ color: 'var(--text)' }}>
-              BTC Yield <span style={{ color: 'var(--text-faint)' }}>Visibility</span>
+              Bitcoin Yield <span style={{ color: 'var(--text-faint)' }}>Intelligence</span>
             </div>
           </Link>
           <Link
