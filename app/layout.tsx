@@ -5,7 +5,7 @@ import { GeistMono } from "geist/font/mono";
 import Footer from "@/components/Footer";
 import "./globals.css";
 
-const SITE_URL = "https://bitcoin-yield-intelligence.vercel.app";
+const SITE_URL = "https://btc-yield-visibility.vercel.app";
 const TAGLINE = "Risk-adjusted Bitcoin yield intelligence for the Stacks ecosystem. Explainable risk scoring, not just an APY table.";
 
 export const metadata: Metadata = {

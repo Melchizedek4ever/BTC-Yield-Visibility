@@ -26,7 +26,7 @@ export default function PrivacyPage() {
           Bitcoin Yield Intelligence (the &ldquo;Service&rdquo;) is an independent informational website
           operated by Ezra Kewa as an individual (the &ldquo;Operator&rdquo;, &ldquo;we&rdquo;,
           &ldquo;us&rdquo;). This policy explains how the Service handles information when you visit{' '}
-          <span className="font-mono-data" style={{ color: 'var(--text)' }}>bitcoin-yield-intelligence.vercel.app</span>.
+          <span className="font-mono-data" style={{ color: 'var(--text)' }}>btc-yield-visibility.vercel.app</span>.
         </p>
       </Section>
 
