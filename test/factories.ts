@@ -1,0 +1,55 @@
+import type { NormalizedOpportunity } from '@/adapters/types';
+import type { Protocol } from '@/domain/protocol';
+
+/**
+ * Test-data builders. Defaults describe one realistic mid-tier live
+ * opportunity; tests override only the fields their behavior depends on,
+ * so each test reads as a spec of exactly what matters.
+ */
+
+export function makeProtocol(overrides: Partial<Protocol> = {}): Protocol {
+  return {
+    id: 'test-protocol',
+    name: 'Test Protocol',
+    shortName: 'Test',
+    slug: 'test-protocol',
+    category: 'Staking',
+    icon: '/icons/test.svg',
+    website: 'https://example.com',
+    appUrl: 'https://app.example.com',
+    description: 'A protocol used only in tests.',
+    protocolAgeMonths: 24,
+    audited: true,
+    audits: ['CoinFabrik'],
+    smartContractRisk: 'Low',
+    supportedAssets: ['sBTC'],
+    metadata: {},
+    ...overrides,
+  };
+}
+
+export function makeOpportunity(overrides: Partial<NormalizedOpportunity> = {}): NormalizedOpportunity {
+  return {
+    id: 'test-opportunity',
+    protocol: makeProtocol(),
+    strategy: 'Stake sBTC',
+    depositAsset: 'sBTC',
+    rewardAssets: ['sBTC'],
+    earnAsset: 'sBTC',
+    apy: 6,
+    apyBase: 5,
+    apyReward: 1,
+    apyRange: { min: 4, max: 8 },
+    tvlUsd: 30e6,
+    tvl7dChange: 0,
+    tvl30dChange: 0,
+    lockup: 'None',
+    ilRisk: 'None',
+    minimumDeposit: null,
+    healthScore: 8,
+    seedRiskScore: 4,
+    status: 'live',
+    updatedAt: '2026-07-30T00:00:00.000Z',
+    ...overrides,
+  };
+}

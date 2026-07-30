@@ -30,10 +30,11 @@ async function fetchPoolsById(poolIds: string[]): Promise<Record<string, { apy: 
   try {
     const res = await fetch(POOLS_URL, { cache: 'no-store', signal: AbortSignal.timeout(POOLS_TIMEOUT_MS) });
     if (!res.ok) return {};
-    const json = await res.json();
+    // External JSON enters as `unknown` (ts-reset); cast at the boundary.
+    const json = (await res.json()) as { data?: Array<{ pool: string; apy: number; tvlUsd: number }> };
     const wanted = new Set(poolIds);
     const byPool: Record<string, { apy: number; tvlUsd: number }> = {};
-    for (const pool of (json.data ?? []) as Array<{ pool: string; apy: number; tvlUsd: number }>) {
+    for (const pool of json.data ?? []) {
       if (wanted.has(pool.pool)) byPool[pool.pool] = { apy: pool.apy ?? 0, tvlUsd: pool.tvlUsd ?? 0 };
     }
     return byPool;
@@ -90,7 +91,7 @@ export async function fetchStacksChainTvl(): Promise<number> {
   try {
     const res = await fetch(CHAIN_TVL_URL, { cache: 'no-store', signal: AbortSignal.timeout(TVL_TIMEOUT_MS) });
     if (!res.ok) return 0;
-    const json: Array<{ date: number; tvl: number }> = await res.json();
+    const json = (await res.json()) as Array<{ date: number; tvl: number }>;
     return json[json.length - 1]?.tvl ?? 0;
   } catch {
     return 0;

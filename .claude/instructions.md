@@ -489,39 +489,77 @@ Teach through the actual project.
 
 ---
 
-# Testing
+# Testing Strategy
 
-Testing will be introduced later.
+Testing is active. The suite is part of the product's trust story:
+the scoring invariants are executable and run on every commit.
 
-Priority:
+Model: hybrid pyramid/trophy.
 
-1. Architecture
-2. Product quality
-3. Investor demo
-4. Testing foundation
-5. Scale
+Unit + property tests for the intelligence core (engines).
+Integration tests for the adapter → service → API pipeline.
+Thin E2E for the investor demo flow.
+Static analysis (strict TypeScript + ts-reset + ESLint) as the foundation.
 
-When testing begins:
+Tooling:
 
-Unit
+- Vitest — test runner
+- fast-check — property-based tests for engine invariants
+- MSW — HTTP mocking for adapter tests (mock at the network boundary only)
+- Playwright — E2E (later phase)
+- dependency-cruiser — architecture boundary rules (hardening phase)
 
-Risk engine
+## TDD Discipline
 
-Scoring engine
+New behavior is test-first: red → green → refactor.
 
-Normalization
+The human owns the spec (the failing test).
+The implementation must earn a green bar.
+Never write a test and its implementation in the same pass.
 
-Integration
+Existing behavior gets characterization tests (pin current behavior first,
+then change it test-first). Name which one you are doing.
 
-API
+Work in vertical slices: one test → one implementation → repeat.
+Never bulk-write tests ahead of implementation.
 
-Services
+## Seams
 
-End-to-end
+Tests live at agreed public seams only, never against internals:
 
-Investor demo flow
+- assessRisk()
+- buildScores()
+- getOpportunities() / getDashboard()
+- API routes (/api/yields, /api/v1/opportunities)
+- adapter fetchOpportunities() / enrich() (HTTP mocked via fixtures)
 
-User journey
+Internals (computeParts, toLegacy, formatters) are NOT seams —
+they must stay free to change without breaking tests.
+
+## Anti-patterns (reject in review)
+
+- Implementation-coupled: mocks internal collaborators, breaks on refactor
+  without behavior change.
+- Tautological: expected value recomputed the way the code computes it.
+  Expected values must be independent literals or worked examples.
+- Horizontal slicing: all tests written first, then all implementation.
+
+Mock only at system boundaries (external APIs, time). Never mock our own modules.
+
+## Phases
+
+0. Foundation — Vitest, CI, scripts, ts-reset (done first)
+1. Engine tests — characterization + property tests for risk + scoring
+2. Adapter contract tests — MSW fixtures, shared contract suite per adapter
+3. Service/API integration — DI seam for assemble(), cache semantics,
+   frozen API response shape (protects future wallet consumers)
+4. E2E — investor demo flow (landing, dashboard, methodology)
+5. Hardening — golden dataset regression, mutation testing (Stryker) on
+   engines, dependency-cruiser layer rules, coverage gates
+   (engines ~95%, adapters/services ~80%, no gate on UI)
+
+UI components are tested only when they contain logic.
+Pixel work is not test-first.
 
 ---
 
@@ -545,6 +583,14 @@ Clear commit messages.
 
 PR review before merge.
 
+PR descriptions:
+
+Concise. What changed and why — a few lines, not essays.
+
+Never reference internal working conversations, session details,
+or the collaboration process. PRs read as professional engineering
+artifacts, nothing else.
+
 ---
 
 # Documentation
@@ -562,6 +608,19 @@ When introducing domain models:
 Explain the business reasoning.
 
 Future contributors should understand the project quickly.
+
+## Comments
+
+Light comments, always.
+
+Every non-obvious module, function, or decision gets a brief comment
+answering what a human inspector needs to know — no more.
+
+Comment the WHY (business reasoning, trade-offs, invariants),
+not the WHAT (the code already says what).
+
+No comment noise: no restating signatures, no changelogs in comments,
+no commented-out code.
 
 ---
 
