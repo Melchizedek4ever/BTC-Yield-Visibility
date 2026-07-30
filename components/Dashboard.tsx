@@ -18,7 +18,8 @@ interface ApiResponse {
   stats: GlobalStats;
 }
 
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+// Our own API's shape is trusted; the cast localizes it to this one boundary.
+const fetcher = (url: string) => fetch(url).then(r => r.json() as Promise<ApiResponse>);
 
 export default function Dashboard() {
   const { mode } = useDashboardStore();
