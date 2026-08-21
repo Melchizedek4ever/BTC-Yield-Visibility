@@ -29,6 +29,7 @@ function toProtocol(p: YieldProtocol): Protocol {
     metadata: {
       defiLlamaProject: p.defiLlamaProject,
       defiLlamaPool: p.defiLlamaPool,
+      velarPool: p.velarPool,
     },
   };
 }

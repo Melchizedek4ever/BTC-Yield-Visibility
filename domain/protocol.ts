@@ -28,5 +28,7 @@ export interface Protocol {
   metadata: {
     defiLlamaProject?: string;
     defiLlamaPool?: string;
+    /** LP token contract address on Velar's DEX. */
+    velarPool?: string;
   };
 }

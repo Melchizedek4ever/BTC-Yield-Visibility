@@ -43,6 +43,8 @@ export interface YieldProtocol {
 
   defiLlamaPool?: string;
   defiLlamaProject?: string;
+  /** LP token contract address on Velar's DEX. */
+  velarPool?: string;
   lastUpdated: string;
 
   isStale?: boolean;
