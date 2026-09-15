@@ -1,6 +1,7 @@
 import { seedAdapter } from '@/adapters/seedAdapter';
 import { alexAdapter } from '@/adapters/alexAdapter';
 import { defillamaAdapter, fetchStacksChainTvl } from '@/adapters/defillamaAdapter';
+import { velarAdapter } from '@/adapters/velarAdapter';
 import { assessRisk } from '@/lib/riskEngine';
 import { buildScores } from '@/lib/scoringEngine';
 import type { NormalizedOpportunity, ProtocolAdapter, EnrichmentAdapter } from '@/adapters/types';
@@ -20,7 +21,11 @@ import type { YieldProtocol, GlobalStats, RiskFactorView } from '@/lib/types';
 
 // Register data sources here. Adding a protocol = add its adapter to this list.
 const ORIGIN_ADAPTERS: ProtocolAdapter[] = [seedAdapter, alexAdapter];
-const ENRICHMENT_ADAPTERS: EnrichmentAdapter[] = [defillamaAdapter];
+// Order matters: each enricher overlays the previous one's output. DefiLlama
+// runs first as the broad-coverage baseline; protocol-native sources like
+// Velar run after, so a first-party reading wins over DefiLlama's for any
+// opportunity both happen to cover.
+const ENRICHMENT_ADAPTERS: EnrichmentAdapter[] = [defillamaAdapter, velarAdapter];
 
 const CACHE_TTL = 60_000;
 let cache: { opportunities: YieldOpportunity[]; chainTvl: number; ts: number } | null = null;

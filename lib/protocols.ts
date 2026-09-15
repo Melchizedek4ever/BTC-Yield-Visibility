@@ -156,7 +156,11 @@ export const PROTOCOL_SEED: YieldProtocol[] = [
     lockupPeriod: "None",
     minimumDeposit: null,
     supportedAssets: ["BTC", "sBTC"],
-    defiLlamaProject: "zest-protocol",
+    // Verified 2026-08-21 against yields.llama.fi/pools — DefiLlama's actual
+    // slug for this protocol is "zest-v2", not "zest-protocol" (the only
+    // Stacks-chain project currently listed there at all).
+    defiLlamaProject: "zest-v2",
+    defiLlamaPool: "f003d6df-fb8f-4a74-8cfb-aee8cc44f433",
     lastUpdated: new Date().toISOString(),
   },
   {
@@ -242,25 +246,33 @@ export const PROTOCOL_SEED: YieldProtocol[] = [
     name: "Velar — sBTC Pool",
     shortName: "Velar",
     slug: "velar-sbtc",
-    description: "LP on Velar DEX and earn VELAR token rewards",
+    description: "LP in Velar's STX-sBTC pool, earning trading fees",
     category: "DEX/LP",
     icon: "💧",
     websiteUrl: "https://velar.co",
     appUrl: "https://app.velar.co",
-    apy: 18.6, apyBase: 3.5, apyReward: 15.1,
-    apyRange: { min: 10, max: 28 },
-    earnAsset: "sBTC + VELAR",
-    tvlUsd: 8_000_000,
-    tvl7dChange: 4.8, tvl30dChange: 19.2,
-    riskScore: 5.9, healthScore: 7.0, opportunityScore: 7.1,
+    // Verified 2026-08-21 directly against api.velar.co/pools — the previous
+    // figures here (18.6% APY, $8M TVL, sBTC+VELAR reward) did not match any
+    // pool that actually exists on Velar today. VELAR the token only pairs
+    // with STX/aeUSDC, at negligible liquidity; the real STX-sBTC pool pays
+    // pure trading fees, no token emissions. These are that pool's live
+    // readings, used here only as the estimated fallback should the
+    // velarAdapter enrichment fetch fail.
+    apy: 1.26, apyBase: 1.26, apyReward: 0,
+    apyRange: { min: 0.5, max: 3 },
+    earnAsset: "sBTC",
+    tvlUsd: 86_516,
+    tvl7dChange: 0, tvl30dChange: 0,
+    riskScore: 6.5, healthScore: 7.0, opportunityScore: 7.1,
     ilRisk: "Low", smartContractRisk: "Medium",
     audited: false, auditFirms: [],
     protocolAge: 10,
-    strategy: "LP in sBTC pool. VELAR token farming rewards + trading fee share.",
+    strategy: "LP in Velar's STX-sBTC pool. Earn trading fees only — no active token incentive program.",
     lockupPeriod: "None",
     minimumDeposit: null,
-    supportedAssets: ["sBTC", "VELAR"],
+    supportedAssets: ["sBTC", "STX"],
     defiLlamaProject: "velar",
+    velarPool: "SP20X3DC5R091J8B6YPQT638J8NR1W83KN6TN5BJY.univ2-lp-token-v1_0_0-0070",
     lastUpdated: new Date().toISOString(),
   },
   {
