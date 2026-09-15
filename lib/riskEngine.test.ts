@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import fc from 'fast-check';
 import { assessRisk } from '@/lib/riskEngine';
 import { makeOpportunity, makeProtocol } from '@/test/factories';
-import type { IlRisk, SmartContractRisk } from '@/domain/protocol';
+import type { IlRisk, ProtocolCategory, SmartContractRisk } from '@/domain/protocol';
 
 /**
  * Seam under test: assessRisk() — the public risk-decomposition interface.
@@ -153,6 +153,30 @@ describe('reward-quality risk', () => {
     const risk = assessRisk(makeOpportunity({ rewardAssets: [] }));
     expect(risk.rewardQualityRisk.score).toBe(5.5);
     expect(risk.rewardQualityRisk.rationale).toBe('Reward asset not disclosed.');
+  });
+});
+
+describe('counterparty risk', () => {
+  const score = (category: ProtocolCategory) =>
+    assessRisk(makeOpportunity({ protocol: makeProtocol({ category }) })).counterpartyRisk.score;
+
+  test('ranks strategy types by how much discretion sits between you and the yield', () => {
+    expect(score('Staking')).toBe(2);
+    expect(score('Lending')).toBe(4.5);
+    expect(score('DEX/LP')).toBe(5.5);
+    expect(score('Yield')).toBe(7);
+  });
+
+  test('explains what the exposure actually is', () => {
+    const lending = assessRisk(makeOpportunity({ protocol: makeProtocol({ category: 'Lending' }) }));
+    expect(lending.counterpartyRisk.rationale).toBe(
+      'Lending market — exposed to borrower default and liquidation failure.',
+    );
+
+    const managed = assessRisk(makeOpportunity({ protocol: makeProtocol({ category: 'Yield' }) }));
+    expect(managed.counterpartyRisk.rationale).toBe(
+      'Managed strategy — returns depend on an operator executing it correctly.',
+    );
   });
 });
 

@@ -1,7 +1,7 @@
 import type { NormalizedOpportunity } from '@/adapters/types';
 import { classifyRewardAsset } from '@/domain/asset';
 import type { AssetTier } from '@/domain/asset';
-import type { IlRisk } from '@/domain/protocol';
+import type { IlRisk, ProtocolCategory } from '@/domain/protocol';
 import type { RiskAssessment, RiskFactor } from '@/domain/riskAssessment';
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -55,6 +55,27 @@ function assessRewardQuality(rewardAssets: string[]): RiskFactor {
 
   return { score: clamp(score, 1, 10), rationale };
 }
+
+/**
+ * Counterparty risk: how much discretion sits between a depositor and their
+ * yield. Staking is protocol-native; a managed strategy depends on an operator
+ * executing it correctly, and can fail while every contract behaves as written.
+ * Derived from category because that is what the seed already records —
+ * a curated per-protocol signal can replace this without changing the seam.
+ */
+const COUNTERPARTY_SCORE: Record<ProtocolCategory, number> = {
+  Staking: 2,
+  Lending: 4.5,
+  'DEX/LP': 5.5,
+  Yield: 7,
+};
+
+const COUNTERPARTY_RATIONALE: Record<ProtocolCategory, string> = {
+  Staking: 'Protocol-native staking — minimal third-party exposure.',
+  Lending: 'Lending market — exposed to borrower default and liquidation failure.',
+  'DEX/LP': 'AMM pool — exposed to pool composition and arbitrage flow.',
+  Yield: 'Managed strategy — returns depend on an operator executing it correctly.',
+};
 
 function fmtUsd(n: number): string {
   if (n >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
@@ -114,6 +135,12 @@ export function assessRisk(o: NormalizedOpportunity): RiskAssessment {
   // Reward-quality risk: is the yield actually Bitcoin?
   const rewardQualityRisk = assessRewardQuality(o.rewardAssets);
 
+  // Counterparty risk: how much third-party discretion the yield depends on.
+  const counterpartyRisk: RiskFactor = {
+    score: COUNTERPARTY_SCORE[o.protocol.category],
+    rationale: COUNTERPARTY_RATIONALE[o.protocol.category],
+  };
+
   const overallScore = o.seedRiskScore;
 
   const drivers: Array<[string, number]> = [
@@ -123,6 +150,7 @@ export function assessRisk(o: NormalizedOpportunity): RiskAssessment {
     ['yield sustainability', yieldSustainabilityRisk.score],
     ['impermanent loss', impermanentLossRisk.score],
     ['reward quality', rewardQualityRisk.score],
+    ['counterparty', counterpartyRisk.score],
   ];
   drivers.sort((a, b) => b[1] - a[1]);
 
@@ -139,6 +167,7 @@ export function assessRisk(o: NormalizedOpportunity): RiskAssessment {
     yieldSustainabilityRisk,
     impermanentLossRisk,
     rewardQualityRisk,
+    counterpartyRisk,
     explanation,
   };
 }

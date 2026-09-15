@@ -127,7 +127,7 @@ describe('risk decomposition (worked example: Zest — BTC Supply)', () => {
     // gap is the next planned change; this test documents what it replaces.
     expect(zest().overallScore).toBe(3.5);
     expect(zest().explanation).toBe(
-      'Overall risk 3.5/10 — driven mostly by protocol age and smart-contract risk.',
+      'Overall risk 3.5/10 — driven mostly by protocol age and counterparty risk.',
     );
   });
 });
@@ -163,6 +163,7 @@ describe('legacy dashboard facade', () => {
       'yieldSustainability',
       'impermanentLoss',
       'rewardQuality',
+      'counterparty',
     ]);
   });
 
