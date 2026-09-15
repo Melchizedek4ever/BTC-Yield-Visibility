@@ -322,6 +322,27 @@ describe('enrichment adapter failure isolation', () => {
   });
 });
 
+describe('chain TVL source failure', () => {
+  test('falls back to summed opportunity TVL when the source throws', async () => {
+    const svc = createYieldService({
+      originAdapters: [
+        originStub([
+          makeOpportunity({ id: 'a', tvlUsd: 5_000_000 }),
+          makeOpportunity({ id: 'b', tvlUsd: 3_000_000 }),
+        ]),
+      ],
+      enrichmentAdapters: [],
+      chainTvlSource: async () => {
+        throw new Error('chain TVL endpoint is down');
+      },
+    });
+
+    const { stats: s } = await svc.getDashboard();
+
+    expect(s.totalTvl).toBe(8_000_000);
+  });
+});
+
 describe('cache semantics', () => {
   /** Counts how many times the pipeline actually ran. */
   function countingOrigin() {

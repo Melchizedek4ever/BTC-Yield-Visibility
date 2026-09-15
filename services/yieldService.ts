@@ -197,7 +197,9 @@ export function createYieldService(overrides: Partial<YieldServiceDeps> = {}): Y
     // 5. Compose canonical domain objects.
     const opportunities = normalized.map(o => toOpportunity(o, risks.get(o.id)!, scores.get(o.id)!));
 
-    const chainTvl = await deps.chainTvlSource();
+    // A header statistic is never worth failing the refresh for: 0 makes
+    // buildStats fall back to the summed opportunity TVL.
+    const chainTvl = await deps.chainTvlSource().catch(() => 0);
     return { opportunities, chainTvl };
   }
 
