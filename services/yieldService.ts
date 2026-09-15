@@ -146,7 +146,11 @@ function toLegacy(o: YieldOpportunity): YieldProtocol {
 function buildStats(opps: YieldOpportunity[], chainTvl: number): GlobalStats {
   const live = opps.filter(o => o.status !== 'coming-soon');
   return {
-    totalTvl: chainTvl || live.reduce((s, o) => s + o.tvlUsd, 0),
+    // DefiLlama's chain-wide DeFi TVL, reported as-is. Summing our own rows
+    // measures something else — they include consensus-level stacking that
+    // chain DeFi TVL excludes — so there is no honest fallback here: 0 means
+    // the upstream figure is unavailable, and the UI says so.
+    totalTvl: chainTvl,
     bestApy: Math.max(...live.map(o => o.apy), 0),
     safestApy: Math.max(...live.filter(o => o.risk.overallScore <= 3).map(o => o.apy), 0),
     activeSourceCount: live.length,

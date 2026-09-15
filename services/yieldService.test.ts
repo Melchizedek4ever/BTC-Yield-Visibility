@@ -141,9 +141,13 @@ describe('risk decomposition (worked example: Zest — BTC Supply)', () => {
 });
 
 describe('dashboard stats', () => {
-  test('falls back to summed opportunity TVL when chain TVL is unavailable', () => {
-    // Sum of the 11 live seed TVLs; coming-soon is excluded.
-    expect(stats.totalTvl).toBe(495_986_516);
+  test('reports chain TVL as unavailable rather than substituting a different measure', () => {
+    // The stat is labelled "Stacks DeFi TVL" and means DefiLlama's chain-wide
+    // figure. Summing our tracked rows answers a different question — these
+    // rows include consensus-level stacking that chain DeFi TVL excludes — so
+    // standing one in for the other would publish a number under a label it
+    // does not belong to. 0 reads as unavailable.
+    expect(stats.totalTvl).toBe(0);
   });
 
   test('reports best and safest APY across live rows only', () => {
@@ -337,7 +341,7 @@ describe('enrichment adapter failure isolation', () => {
 });
 
 describe('chain TVL source failure', () => {
-  test('falls back to summed opportunity TVL when the source throws', async () => {
+  test('reports 0 rather than a substitute measure when the source throws', async () => {
     const svc = createYieldService({
       originAdapters: [
         originStub([
@@ -353,7 +357,7 @@ describe('chain TVL source failure', () => {
 
     const { stats: s } = await svc.getDashboard();
 
-    expect(s.totalTvl).toBe(8_000_000);
+    expect(s.totalTvl).toBe(0);
   });
 });
 

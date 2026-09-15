@@ -13,7 +13,7 @@ import { describeAdapterContract } from '@/test/adapterContract';
  * every test uses its own unique pool id to stay isolated at the public seam.
  */
 
-const POOLS_URL = 'https://yields.llama.fi/pools';
+const POOLS_URL = 'https://yields.llama.fi/poolsEnriched';
 const CHAIN_TVL_URL = 'https://api.llama.fi/v2/historicalChainTvl/Stacks';
 
 const server = setupServer();
@@ -34,8 +34,19 @@ function makePooledOpportunity(poolId: string) {
   });
 }
 
+/**
+ * Stands in for the per-pool endpoint: it answers for the single pool id in
+ * the query string, so a test that serves nothing for an id reproduces a real
+ * unmatched pool rather than an empty whole-list response.
+ */
 function servePools(pools: Array<{ pool: string; apy: number; tvlUsd: number }>) {
-  server.use(http.get(POOLS_URL, () => HttpResponse.json({ data: pools })));
+  server.use(
+    http.get(POOLS_URL, ({ request }) => {
+      const wanted = new URL(request.url).searchParams.get('pool');
+      const match = pools.filter(p => p.pool === wanted);
+      return HttpResponse.json({ status: 'success', data: match });
+    }),
+  );
 }
 
 describe('enrichment with live data', () => {
@@ -86,6 +97,49 @@ describe('failure modes', () => {
     const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-zero')]);
     expect(o.apy).toBe(6);
     expect(o.scoresEstimated).toBe(true);
+  });
+});
+
+describe('per-pool request isolation', () => {
+  test('one failing pool does not cost the others their live reading', async () => {
+    // The whole-list fetch this replaced was all-or-nothing: a single bad
+    // upstream response dropped every row back to seed estimates at once.
+    server.use(
+      http.get(POOLS_URL, ({ request }) => {
+        const wanted = new URL(request.url).searchParams.get('pool');
+        if (wanted === 'p-broken') return new HttpResponse(null, { status: 500 });
+        return HttpResponse.json({ status: 'success', data: [{ pool: wanted, apy: 6, tvlUsd: 40e6 }] });
+      }),
+    );
+
+    const [broken, healthy] = await defillamaAdapter.enrich([
+      makePooledOpportunity('p-broken'),
+      makePooledOpportunity('p-healthy'),
+    ]);
+
+    expect(broken.scoresEstimated).toBe(true); // fell back to its seed baseline
+    expect(healthy.apy).toBe(6); // unaffected by its neighbour
+    expect(healthy.scoresEstimated).toBe(false);
+  });
+
+  test('asks only for the pools it maps, one request each', async () => {
+    const requested: string[] = [];
+    server.use(
+      http.get(POOLS_URL, ({ request }) => {
+        const wanted = new URL(request.url).searchParams.get('pool');
+        requested.push(wanted ?? '(unfiltered)');
+        return HttpResponse.json({ status: 'success', data: [] });
+      }),
+    );
+
+    await defillamaAdapter.enrich([
+      makePooledOpportunity('p-one'),
+      makePooledOpportunity('p-two'),
+      { ...makePooledOpportunity('p-soon-2'), status: 'coming-soon' as const },
+    ]);
+
+    // Never an unfiltered call: that is the 11MB whole-list download.
+    expect(requested.sort()).toEqual(['p-one', 'p-two']);
   });
 });
 

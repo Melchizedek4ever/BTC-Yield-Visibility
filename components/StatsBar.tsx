@@ -38,7 +38,10 @@ export default function StatsBar({ stats, loading }: StatsBarProps) {
       className="flex flex-wrap mb-6 overflow-x-auto"
       style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
     >
-      <Tick label="Stacks DeFi TVL" value={formatTvl(stats.totalTvl)} />
+      {/* 0 means the upstream chain figure did not arrive this cycle. Showing a
+          dash is honest; substituting our own row total would put a different
+          measure under this label. */}
+      <Tick label="Stacks DeFi TVL" value={stats.totalTvl > 0 ? formatTvl(stats.totalTvl) : '—'} />
       <Tick label="Best APY" value={formatApy(stats.bestApy)} accent="var(--gold)" />
       <Tick label="Safest APY" value={formatApy(stats.safestApy)} accent="var(--safe)" />
       <Tick label="Sources tracked" value={stats.activeSourceCount.toString()} />
