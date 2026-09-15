@@ -1,0 +1,25 @@
+#!/bin/sh
+# Local pre-push gate — mirrors .github/workflows/ci.yml so a red build never
+# leaves the machine. While GitHub Actions is unavailable this is the *only*
+# gate enforcing lint/typecheck/tests, so it must stay in step with that
+# workflow whenever either one changes.
+#
+# Also refuses direct pushes to main — every change lands through a PR.
+#
+# Git cannot self-install hooks, so this needs one command per clone:
+#   git config core.hooksPath .githooks
+# Bypass in a real emergency:  git push --no-verify
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main)
+      echo "pre-push: direct pushes to main are blocked — open a PR instead." >&2
+      exit 1
+      ;;
+  esac
+done
+
+echo "pre-push: running lint, typecheck, and tests..."
+npm run lint || exit 1
+npm run typecheck || exit 1
+npm test || exit 1
