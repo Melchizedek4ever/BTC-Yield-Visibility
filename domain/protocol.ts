@@ -30,5 +30,7 @@ export interface Protocol {
     defiLlamaPool?: string;
     /** LP token contract address on Velar's DEX. */
     velarPool?: string;
+    /** True for the row representing the whole PoX stacking pool. */
+    stacksPox?: boolean;
   };
 }

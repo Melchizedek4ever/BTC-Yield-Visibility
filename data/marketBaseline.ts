@@ -54,10 +54,14 @@ export const MARKET_BASELINE: MarketBaseline[] = [
     apyBase: 9.2,
     apyReward: 0,
     apyRange: { min: 7, max: 11 },
-    tvlUsd: 200000000,
+    // Reviewed against PoX chain state (cycle 143: 441.6M STX stacked, which
+    // at the then-current STX price is ~$114.7M). The previous $200,000,000
+    // was high by roughly three quarters. Rounded deliberately: this is the
+    // fallback for when the live reading cannot be fetched, not a measurement.
+    tvlUsd: 115000000,
     tvl7dChange: 1.1,
     tvl30dChange: 5.2,
-    reviewedAt: "2026-08-21",
+    reviewedAt: "2026-09-15",
   },
   {
     protocolId: "hermetica-hbtc",

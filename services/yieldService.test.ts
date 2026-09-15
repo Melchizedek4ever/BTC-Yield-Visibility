@@ -32,6 +32,8 @@ const server = setupServer(
   http.get(POOLS_URL, () => HttpResponse.json({ status: 'success', data: [] })),
   http.get(CHAIN_TVL_URL, () => HttpResponse.json([])),
   http.get('https://api.velar.co/pools/:lpToken', () => new HttpResponse(null, { status: 404 })),
+  http.get('https://api.hiro.so/v2/pox', () => new HttpResponse(null, { status: 503 })),
+  http.get('https://api.coingecko.com/api/v3/simple/price', () => new HttpResponse(null, { status: 503 })),
 );
 
 let opportunities: YieldOpportunity[];

@@ -52,6 +52,12 @@ export interface ProtocolRecord {
     defiLlamaProject?: string;
     defiLlamaPool?: string;
     velarPool?: string;
+    /**
+     * Marks the row whose TVL is the entire PoX stacking pool. Only one row may
+     * set this: `stacked_ustx` is a single chain-wide total, so attributing it
+     * to more than one opportunity would double-count the same STX.
+     */
+    stacksPox?: boolean;
   };
 }
 
@@ -144,6 +150,7 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     status: "live",
     externalIds: {
       defiLlamaProject: "stacks",
+      stacksPox: true,
     },
   },
   {

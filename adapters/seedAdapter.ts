@@ -43,6 +43,7 @@ function toProtocol(r: ProtocolRecord): Protocol {
       defiLlamaProject: r.externalIds.defiLlamaProject,
       defiLlamaPool: r.externalIds.defiLlamaPool,
       velarPool: r.externalIds.velarPool,
+      stacksPox: r.externalIds.stacksPox,
     },
   };
 }
