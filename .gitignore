@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude Code local settings — machine-specific permission allowlists with
+# absolute paths. The shared project charter lives in .claude/instructions.md
+# and is tracked; if genuinely shared settings are ever needed, untrack
+# settings.json and keep only settings.local.json ignored.
+.claude/settings.json
+.claude/settings.local.json

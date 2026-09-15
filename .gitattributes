@@ -1,0 +1,10 @@
+# Let git normalize text files in the repository, while leaving working-copy
+# endings to each developer's platform.
+* text=auto
+
+# Shell scripts are the exception: they must keep LF in the working copy too.
+# Git executes hooks directly, and CRLF corrupts the shebang on POSIX systems
+# ("bad interpreter: /bin/sh^M"), silently disabling the gate on any clone
+# where core.autocrlf is on.
+*.sh text eol=lf
+.githooks/* text eol=lf
