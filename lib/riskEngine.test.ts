@@ -112,6 +112,50 @@ describe('impermanent-loss risk', () => {
   });
 });
 
+describe('reward-quality risk', () => {
+  const score = (rewardAssets: string[]) =>
+    assessRisk(makeOpportunity({ rewardAssets })).rewardQualityRisk.score;
+
+  test('Bitcoin-denominated yield scores the floor', () => {
+    const risk = assessRisk(makeOpportunity({ rewardAssets: ['BTC'] }));
+    expect(risk.rewardQualityRisk.score).toBe(1);
+    expect(risk.rewardQualityRisk.rationale).toBe('Paid in BTC — yield accrues in Bitcoin.');
+  });
+
+  test('treats sBTC as Bitcoin-denominated', () => {
+    expect(score(['sBTC'])).toBe(1);
+  });
+
+  test('ranks stablecoins and the native chain asset above Bitcoin but below protocol tokens', () => {
+    expect(score(['USDA'])).toBe(3);
+    expect(score(['STX'])).toBe(4.5);
+    expect(score(['ALEX'])).toBe(8);
+  });
+
+  test('averages across a mixed reward pair', () => {
+    // sBTC (1) + ALEX (8) — half the yield is in a token that can decay.
+    expect(score(['sBTC', 'ALEX'])).toBe(4.5);
+  });
+
+  test('treats an unrecognized symbol as a protocol token', () => {
+    // Conservative default: an unknown reward asset is not assumed safe.
+    expect(score(['WHATEVER'])).toBe(8);
+  });
+
+  test('names the non-Bitcoin assets in the rationale', () => {
+    const risk = assessRisk(makeOpportunity({ rewardAssets: ['DIKO', 'USDA'] }));
+    expect(risk.rewardQualityRisk.rationale).toBe(
+      'Paid in DIKO, USDA — none of the yield accrues in Bitcoin.',
+    );
+  });
+
+  test('says so plainly when no reward asset is disclosed', () => {
+    const risk = assessRisk(makeOpportunity({ rewardAssets: [] }));
+    expect(risk.rewardQualityRisk.score).toBe(5.5);
+    expect(risk.rewardQualityRisk.rationale).toBe('Reward asset not disclosed.');
+  });
+});
+
 describe('overall score and explanation', () => {
   // Characterization: the overall is the curated seed value, NOT computed
   // from the sub-factors. Changing that is a deliberate future decision.

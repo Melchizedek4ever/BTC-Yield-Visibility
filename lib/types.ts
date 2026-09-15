@@ -1,5 +1,5 @@
 export interface RiskFactorView {
-  key: 'smartContract' | 'liquidity' | 'protocolAge' | 'yieldSustainability' | 'impermanentLoss';
+  key: 'smartContract' | 'liquidity' | 'protocolAge' | 'yieldSustainability' | 'impermanentLoss' | 'rewardQuality';
   label: string;
   /** 1 (safest) to 10 (riskiest). */
   score: number;

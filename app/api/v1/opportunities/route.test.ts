@@ -59,6 +59,7 @@ const RISK_FIELDS = [
   'protocolAgeRisk',
   'yieldSustainabilityRisk',
   'impermanentLossRisk',
+  'rewardQualityRisk',
   'explanation',
 ] as const;
 
@@ -131,6 +132,7 @@ describe('opportunity shape', () => {
         'protocolAgeRisk',
         'yieldSustainabilityRisk',
         'impermanentLossRisk',
+        'rewardQualityRisk',
       ]) {
         const f = risk[factor] as Record<string, unknown>;
         expect(Object.keys(f).sort()).toEqual(['rationale', 'score']);

@@ -162,6 +162,7 @@ describe('legacy dashboard facade', () => {
       'protocolAge',
       'yieldSustainability',
       'impermanentLoss',
+      'rewardQuality',
     ]);
   });
 

@@ -1,4 +1,6 @@
 import type { NormalizedOpportunity } from '@/adapters/types';
+import { classifyRewardAsset } from '@/domain/asset';
+import type { AssetTier } from '@/domain/asset';
 import type { IlRisk } from '@/domain/protocol';
 import type { RiskAssessment, RiskFactor } from '@/domain/riskAssessment';
 
@@ -20,6 +22,39 @@ const IL_RATIONALE: Record<IlRisk, string> = {
   Medium: 'Mixed-volatility pair — meaningful impermanent loss.',
   High: 'Volatile pair — impermanent loss can outweigh the yield earned.',
 };
+
+/**
+ * What the yield is actually paid in. "11% APY" denominated in a governance
+ * token is a different offer from 11% in Bitcoin, and the emissions share alone
+ * does not catch it: a protocol paying its own token as *base* yield reads as
+ * fully sustainable while leaving the holder exposed to that token.
+ */
+const REWARD_TIER_SCORE: Record<AssetTier, number> = {
+  bitcoin: 1,
+  stablecoin: 3,
+  native: 4.5,
+  protocol: 8,
+};
+
+function assessRewardQuality(rewardAssets: string[]): RiskFactor {
+  if (rewardAssets.length === 0) {
+    return { score: 5.5, rationale: 'Reward asset not disclosed.' };
+  }
+
+  const tiers = rewardAssets.map(classifyRewardAsset);
+  const score = tiers.reduce((sum, t) => sum + REWARD_TIER_SCORE[t], 0) / tiers.length;
+  const names = rewardAssets.join(', ');
+  const btcCount = tiers.filter(t => t === 'bitcoin').length;
+
+  const rationale =
+    btcCount === tiers.length
+      ? `Paid in ${names} — yield accrues in Bitcoin.`
+      : btcCount === 0
+        ? `Paid in ${names} — none of the yield accrues in Bitcoin.`
+        : `Paid in ${names} — only part of the yield accrues in Bitcoin.`;
+
+  return { score: clamp(score, 1, 10), rationale };
+}
 
 function fmtUsd(n: number): string {
   if (n >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
@@ -76,6 +111,9 @@ export function assessRisk(o: NormalizedOpportunity): RiskAssessment {
     rationale: IL_RATIONALE[o.ilRisk],
   };
 
+  // Reward-quality risk: is the yield actually Bitcoin?
+  const rewardQualityRisk = assessRewardQuality(o.rewardAssets);
+
   const overallScore = o.seedRiskScore;
 
   const drivers: Array<[string, number]> = [
@@ -84,6 +122,7 @@ export function assessRisk(o: NormalizedOpportunity): RiskAssessment {
     ['protocol age', protocolAgeRisk.score],
     ['yield sustainability', yieldSustainabilityRisk.score],
     ['impermanent loss', impermanentLossRisk.score],
+    ['reward quality', rewardQualityRisk.score],
   ];
   drivers.sort((a, b) => b[1] - a[1]);
 
@@ -99,6 +138,7 @@ export function assessRisk(o: NormalizedOpportunity): RiskAssessment {
     protocolAgeRisk,
     yieldSustainabilityRisk,
     impermanentLossRisk,
+    rewardQualityRisk,
     explanation,
   };
 }
