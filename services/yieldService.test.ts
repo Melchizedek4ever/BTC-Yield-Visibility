@@ -272,6 +272,56 @@ describe('enrichment precedence', () => {
   });
 });
 
+describe('enrichment adapter failure isolation', () => {
+  function failingEnricher(source = 'broken-enricher'): EnrichmentAdapter {
+    return {
+      source,
+      getMetadata: () => ({ source, description: 'always throws', kind: 'enrichment' }),
+      fetchOpportunities: async () => [],
+      enrich: async () => {
+        throw new Error('enrichment source is down');
+      },
+    };
+  }
+
+  test('an enricher that throws is skipped, and later enrichers still run', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'resilient', apy: 1 })])],
+      enrichmentAdapters: [apyStamper('baseline', 10), failingEnricher(), apyStamper('first-party', 20)],
+      chainTvlSource: noChainTvl,
+    });
+
+    const [o] = await svc.getOpportunities();
+
+    expect(o.apy).toBe(20);
+  });
+
+  test('a mid-pipeline failure keeps the work earlier enrichers already did', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'partial', apy: 1 })])],
+      enrichmentAdapters: [apyStamper('baseline', 10), failingEnricher()],
+      chainTvlSource: noChainTvl,
+    });
+
+    const [o] = await svc.getOpportunities();
+
+    expect(o.apy).toBe(10); // the baseline overlay survives
+  });
+
+  test('every enricher failing still serves origin rows rather than erroring', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'bare', apy: 7 })])],
+      enrichmentAdapters: [failingEnricher('a'), failingEnricher('b')],
+      chainTvlSource: noChainTvl,
+    });
+
+    const { protocols: rows } = await svc.getDashboard();
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].apy).toBe(7);
+  });
+});
+
 describe('cache semantics', () => {
   /** Counts how many times the pipeline actually ran. */
   function countingOrigin() {

@@ -174,9 +174,18 @@ export function createYieldService(overrides: Partial<YieldServiceDeps> = {}): Y
     const gathered = await Promise.all(deps.originAdapters.map(a => a.fetchOpportunities().catch(() => [])));
     let normalized: NormalizedOpportunity[] = gathered.flat();
 
-    // 2. Enrich with live data (each enrichment adapter refines in turn).
+    // 2. Enrich with live data (each enrichment adapter refines in turn). A
+    //    throwing enricher is skipped like a failing origin source: losing one
+    //    live overlay degrades the reading, it must never fail the refresh and
+    //    take the dashboard down with it. Rows keep whatever the previous stage
+    //    produced — no flags are invented, since we cannot know which rows this
+    //    enricher would have claimed.
     for (const enricher of deps.enrichmentAdapters) {
-      normalized = await enricher.enrich(normalized);
+      try {
+        normalized = await enricher.enrich(normalized);
+      } catch {
+        // Skip this overlay and continue with the remaining enrichers.
+      }
     }
 
     // 3. Risk assessment (explainable sub-factors).
