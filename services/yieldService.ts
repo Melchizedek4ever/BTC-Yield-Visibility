@@ -19,16 +19,32 @@ import type { YieldProtocol, GlobalStats, RiskFactorView } from '@/lib/types';
  *            engine → YieldOpportunity[]  (then a legacy view for the dashboard)
  */
 
-// Register data sources here. Adding a protocol = add its adapter to this list.
-const ORIGIN_ADAPTERS: ProtocolAdapter[] = [seedAdapter, alexAdapter];
-// Order matters: each enricher overlays the previous one's output. DefiLlama
-// runs first as the broad-coverage baseline; protocol-native sources like
-// Velar run after, so a first-party reading wins over DefiLlama's for any
-// opportunity both happen to cover.
-const ENRICHMENT_ADAPTERS: EnrichmentAdapter[] = [defillamaAdapter, velarAdapter];
+/**
+ * Everything the service reaches outside itself. Declared as data rather than
+ * imported at the point of use, so the whole pipeline can be driven with
+ * controlled inputs — including the clock, which makes cache expiry testable
+ * without mutating global timers.
+ */
+export interface YieldServiceDeps {
+  originAdapters: ProtocolAdapter[];
+  enrichmentAdapters: EnrichmentAdapter[];
+  chainTvlSource: () => Promise<number>;
+  now: () => number;
+  cacheTtlMs: number;
+}
 
-const CACHE_TTL = 60_000;
-let cache: { opportunities: YieldOpportunity[]; chainTvl: number; ts: number } | null = null;
+export const defaultDeps: YieldServiceDeps = {
+  // Register data sources here. Adding a protocol = add its adapter to this list.
+  originAdapters: [seedAdapter, alexAdapter],
+  // Order matters: each enricher overlays the previous one's output. DefiLlama
+  // runs first as the broad-coverage baseline; protocol-native sources like
+  // Velar run after, so a first-party reading wins over DefiLlama's for any
+  // opportunity both happen to cover.
+  enrichmentAdapters: [defillamaAdapter, velarAdapter],
+  chainTvlSource: fetchStacksChainTvl,
+  now: Date.now,
+  cacheTtlMs: 60_000,
+};
 
 function toOpportunity(
   o: NormalizedOpportunity,
@@ -63,42 +79,6 @@ function toOpportunity(
     isStale: o.isStale,
     updatedAt: o.updatedAt,
   };
-}
-
-async function assemble(): Promise<{ opportunities: YieldOpportunity[]; chainTvl: number }> {
-  // 1. Gather normalized opportunities from every origin adapter.
-  const gathered = await Promise.all(ORIGIN_ADAPTERS.map(a => a.fetchOpportunities().catch(() => [])));
-  let normalized: NormalizedOpportunity[] = gathered.flat();
-
-  // 2. Enrich with live data (each enrichment adapter refines in turn).
-  for (const enricher of ENRICHMENT_ADAPTERS) {
-    normalized = await enricher.enrich(normalized);
-  }
-
-  // 3. Risk assessment (explainable sub-factors).
-  const risks = new Map<string, RiskAssessment>(normalized.map(o => [o.id, assessRisk(o)]));
-
-  // 4. Risk-adjusted scoring (normalized across the live set).
-  const scores = buildScores(normalized, risks);
-
-  // 5. Compose canonical domain objects.
-  const opportunities = normalized.map(o => toOpportunity(o, risks.get(o.id)!, scores.get(o.id)!));
-
-  const chainTvl = await fetchStacksChainTvl();
-  return { opportunities, chainTvl };
-}
-
-async function getCached() {
-  const now = Date.now();
-  if (cache && now - cache.ts < CACHE_TTL) return cache;
-  const { opportunities, chainTvl } = await assemble();
-  cache = { opportunities, chainTvl, ts: now };
-  return cache;
-}
-
-/** Canonical, consumer-agnostic model — for /api/v1 and any future SDK. */
-export async function getOpportunities(): Promise<YieldOpportunity[]> {
-  return (await getCached()).opportunities;
 }
 
 // ── Legacy dashboard façade ────────────────────────────────────────────────
@@ -172,7 +152,73 @@ function buildStats(opps: YieldOpportunity[], chainTvl: number): GlobalStats {
   };
 }
 
-export async function getDashboard(): Promise<{ protocols: YieldProtocol[]; stats: GlobalStats }> {
-  const { opportunities, chainTvl } = await getCached();
-  return { protocols: opportunities.map(toLegacy), stats: buildStats(opportunities, chainTvl) };
+export interface YieldService {
+  /** Canonical, consumer-agnostic model — for /api/v1 and any future SDK. */
+  getOpportunities(): Promise<YieldOpportunity[]>;
+  getDashboard(): Promise<{ protocols: YieldProtocol[]; stats: GlobalStats }>;
 }
+
+/**
+ * Builds a service over the given dependencies, defaulting to the live ones.
+ * The cache is closure state rather than module state, so every instance starts
+ * cold: tests cannot leak assembled results into one another, and no test-only
+ * reset hatch has to exist in production code.
+ */
+export function createYieldService(overrides: Partial<YieldServiceDeps> = {}): YieldService {
+  const deps = { ...defaultDeps, ...overrides };
+  let cache: { opportunities: YieldOpportunity[]; chainTvl: number; ts: number } | null = null;
+
+  async function assemble(): Promise<{ opportunities: YieldOpportunity[]; chainTvl: number }> {
+    // 1. Gather normalized opportunities from every origin adapter. A source
+    //    that throws is skipped rather than failing the whole refresh.
+    const gathered = await Promise.all(deps.originAdapters.map(a => a.fetchOpportunities().catch(() => [])));
+    let normalized: NormalizedOpportunity[] = gathered.flat();
+
+    // 2. Enrich with live data (each enrichment adapter refines in turn).
+    for (const enricher of deps.enrichmentAdapters) {
+      normalized = await enricher.enrich(normalized);
+    }
+
+    // 3. Risk assessment (explainable sub-factors).
+    const risks = new Map<string, RiskAssessment>(normalized.map(o => [o.id, assessRisk(o)]));
+
+    // 4. Risk-adjusted scoring (normalized across the live set).
+    const scores = buildScores(normalized, risks);
+
+    // 5. Compose canonical domain objects.
+    const opportunities = normalized.map(o => toOpportunity(o, risks.get(o.id)!, scores.get(o.id)!));
+
+    const chainTvl = await deps.chainTvlSource();
+    return { opportunities, chainTvl };
+  }
+
+  async function getCached() {
+    const now = deps.now();
+    if (cache && now - cache.ts < deps.cacheTtlMs) return cache;
+    const { opportunities, chainTvl } = await assemble();
+    cache = { opportunities, chainTvl, ts: now };
+    return cache;
+  }
+
+  return {
+    async getOpportunities() {
+      return (await getCached()).opportunities;
+    },
+    async getDashboard() {
+      const { opportunities, chainTvl } = await getCached();
+      return { protocols: opportunities.map(toLegacy), stats: buildStats(opportunities, chainTvl) };
+    },
+  };
+}
+
+/**
+ * The instance the application runs on. Created at import time so its cache is
+ * process-global, which is what the API routes want. Routes keep importing the
+ * two functions directly, so the seam is invisible to them.
+ */
+export const yieldService = createYieldService();
+
+export const getOpportunities = (): Promise<YieldOpportunity[]> => yieldService.getOpportunities();
+
+export const getDashboard = (): Promise<{ protocols: YieldProtocol[]; stats: GlobalStats }> =>
+  yieldService.getDashboard();
