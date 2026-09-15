@@ -16,6 +16,8 @@ export interface RiskAssessment {
   liquidityRisk: RiskFactor;
   protocolAgeRisk: RiskFactor;
   yieldSustainabilityRisk: RiskFactor;
+  /** Principal risk from holding a paired position rather than a single asset. */
+  impermanentLossRisk: RiskFactor;
   /** One-line human summary of the dominant risk drivers. */
   explanation: string;
 }

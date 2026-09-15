@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import fc from 'fast-check';
 import { assessRisk } from '@/lib/riskEngine';
 import { makeOpportunity, makeProtocol } from '@/test/factories';
-import type { SmartContractRisk } from '@/domain/protocol';
+import type { IlRisk, SmartContractRisk } from '@/domain/protocol';
 
 /**
  * Seam under test: assessRisk() — the public risk-decomposition interface.
@@ -86,6 +86,29 @@ describe('yield-sustainability risk', () => {
     const risk = assessRisk(makeOpportunity({ apy: 10, apyBase: 0, apyReward: 10 }));
     expect(risk.yieldSustainabilityRisk.score).toBe(10);
     expect(risk.yieldSustainabilityRisk.rationale).toContain('high dependence on incentives');
+  });
+});
+
+describe('impermanent-loss risk', () => {
+  test('a single-asset position carries none', () => {
+    const risk = assessRisk(makeOpportunity({ ilRisk: 'None' }));
+    expect(risk.impermanentLossRisk.score).toBe(1);
+    expect(risk.impermanentLossRisk.rationale).toBe('Single-asset position — no impermanent loss.');
+  });
+
+  test('scores each exposure band higher than the last', () => {
+    const score = (ilRisk: IlRisk) => assessRisk(makeOpportunity({ ilRisk })).impermanentLossRisk.score;
+    expect(score('None')).toBe(1);
+    expect(score('Low')).toBe(3);
+    expect(score('Medium')).toBe(6);
+    expect(score('High')).toBe(8.5);
+  });
+
+  test('warns when impermanent loss can outweigh the yield', () => {
+    const risk = assessRisk(makeOpportunity({ ilRisk: 'High' }));
+    expect(risk.impermanentLossRisk.rationale).toBe(
+      'Volatile pair — impermanent loss can outweigh the yield earned.',
+    );
   });
 });
 

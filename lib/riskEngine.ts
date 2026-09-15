@@ -1,9 +1,25 @@
 import type { NormalizedOpportunity } from '@/adapters/types';
+import type { IlRisk } from '@/domain/protocol';
 import type { RiskAssessment, RiskFactor } from '@/domain/riskAssessment';
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 const SC_RISK_BASE: Record<string, number> = { 'Very Low': 1.5, Low: 3, Medium: 5.5, High: 8 };
+
+/**
+ * Impermanent loss is principal risk, not yield risk: an LP can end up with
+ * fewer sats than they deposited while the advertised APY still reads well.
+ * The seed data already classifies every opportunity's exposure, so the bands
+ * map that classification onto the shared 1–10 scale.
+ */
+const IL_RISK_BASE: Record<IlRisk, number> = { None: 1, Low: 3, Medium: 6, High: 8.5 };
+
+const IL_RATIONALE: Record<IlRisk, string> = {
+  None: 'Single-asset position — no impermanent loss.',
+  Low: 'Correlated pair — limited impermanent loss.',
+  Medium: 'Mixed-volatility pair — meaningful impermanent loss.',
+  High: 'Volatile pair — impermanent loss can outweigh the yield earned.',
+};
 
 function fmtUsd(n: number): string {
   if (n >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
@@ -54,6 +70,12 @@ export function assessRisk(o: NormalizedOpportunity): RiskAssessment {
     }.`,
   };
 
+  // Impermanent-loss risk: paired positions can lose principal outright.
+  const impermanentLossRisk: RiskFactor = {
+    score: IL_RISK_BASE[o.ilRisk],
+    rationale: IL_RATIONALE[o.ilRisk],
+  };
+
   const overallScore = o.seedRiskScore;
 
   const drivers: Array<[string, number]> = [
@@ -61,6 +83,7 @@ export function assessRisk(o: NormalizedOpportunity): RiskAssessment {
     ['liquidity', liquidityRisk.score],
     ['protocol age', protocolAgeRisk.score],
     ['yield sustainability', yieldSustainabilityRisk.score],
+    ['impermanent loss', impermanentLossRisk.score],
   ];
   drivers.sort((a, b) => b[1] - a[1]);
 
@@ -69,5 +92,13 @@ export function assessRisk(o: NormalizedOpportunity): RiskAssessment {
       ? 'Unrated until live.'
       : `Overall risk ${overallScore}/10 — driven mostly by ${drivers[0][0]} and ${drivers[1][0]} risk.`;
 
-  return { overallScore, smartContractRisk, liquidityRisk, protocolAgeRisk, yieldSustainabilityRisk, explanation };
+  return {
+    overallScore,
+    smartContractRisk,
+    liquidityRisk,
+    protocolAgeRisk,
+    yieldSustainabilityRisk,
+    impermanentLossRisk,
+    explanation,
+  };
 }

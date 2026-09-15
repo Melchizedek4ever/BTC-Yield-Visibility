@@ -93,6 +93,7 @@ function toRiskFactors(o: YieldOpportunity): RiskFactorView[] {
     { key: 'liquidity', label: 'Liquidity', score: r.liquidityRisk.score, rationale: r.liquidityRisk.rationale },
     { key: 'protocolAge', label: 'Protocol Age', score: r.protocolAgeRisk.score, rationale: r.protocolAgeRisk.rationale },
     { key: 'yieldSustainability', label: 'Yield Sustainability', score: r.yieldSustainabilityRisk.score, rationale: r.yieldSustainabilityRisk.rationale },
+    { key: 'impermanentLoss', label: 'Impermanent Loss', score: r.impermanentLossRisk.score, rationale: r.impermanentLossRisk.rationale },
   ];
 }
 

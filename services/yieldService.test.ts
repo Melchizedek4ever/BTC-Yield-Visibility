@@ -161,6 +161,7 @@ describe('legacy dashboard facade', () => {
       'liquidity',
       'protocolAge',
       'yieldSustainability',
+      'impermanentLoss',
     ]);
   });
 
