@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import { getDashboard, getOpportunities } from '@/services/yieldService';
+import { createYieldService, getDashboard, getOpportunities } from '@/services/yieldService';
+import { makeOpportunity, makeProtocol } from '@/test/factories';
+import type { EnrichmentAdapter, NormalizedOpportunity, ProtocolAdapter } from '@/adapters/types';
 import type { YieldOpportunity } from '@/domain/yieldOpportunity';
 import type { GlobalStats, YieldProtocol } from '@/lib/types';
 
@@ -165,5 +167,173 @@ describe('legacy dashboard facade', () => {
   test('omits risk factors for coming-soon rows', () => {
     const soon = protocols.find(p => p.id === 'bitcoin-staking')!;
     expect(soon.riskFactors).toBeUndefined();
+  });
+});
+
+// ── Pipeline semantics, driven through the injected seam ───────────────────
+// These exercise behaviour that already exists but was previously unreachable:
+// with the adapters, clock, and chain-TVL source hardcoded, there was no way to
+// feed the pipeline controlled inputs without mocking our own modules.
+
+const noChainTvl = async () => 0;
+
+function originStub(opps: NormalizedOpportunity[], source = 'stub'): ProtocolAdapter {
+  return {
+    source,
+    getMetadata: () => ({ source, description: 'test origin', kind: 'origin' }),
+    fetchOpportunities: async () => opps,
+  };
+}
+
+function failingOrigin(source = 'broken'): ProtocolAdapter {
+  return {
+    source,
+    getMetadata: () => ({ source, description: 'always throws', kind: 'origin' }),
+    fetchOpportunities: async () => {
+      throw new Error('upstream is down');
+    },
+  };
+}
+
+/** An enricher that stamps a fixed APY onto every row, so precedence is visible. */
+function apyStamper(source: string, apy: number): EnrichmentAdapter {
+  return {
+    source,
+    getMetadata: () => ({ source, description: 'test enricher', kind: 'enrichment' }),
+    fetchOpportunities: async () => [],
+    enrich: async opps => opps.map(o => ({ ...o, apy })),
+  };
+}
+
+describe('origin adapter failure isolation', () => {
+  test('a source that throws is skipped, and the rest still assemble', async () => {
+    const svc = createYieldService({
+      originAdapters: [failingOrigin(), originStub([makeOpportunity({ id: 'survivor' })])],
+      enrichmentAdapters: [],
+      chainTvlSource: noChainTvl,
+    });
+
+    const opps = await svc.getOpportunities();
+
+    expect(opps.map(o => o.id)).toEqual(['survivor']);
+  });
+
+  test('every source failing yields an empty dashboard rather than an error', async () => {
+    const svc = createYieldService({
+      originAdapters: [failingOrigin('a'), failingOrigin('b')],
+      enrichmentAdapters: [],
+      chainTvlSource: noChainTvl,
+    });
+
+    const { protocols: rows, stats: s } = await svc.getDashboard();
+
+    expect(rows).toEqual([]);
+    expect(s.activeSourceCount).toBe(0);
+    expect(s.bestApy).toBe(0); // Math.max seeded with 0, not -Infinity
+  });
+});
+
+describe('enrichment precedence', () => {
+  test('later enrichers overlay earlier ones, so a first-party reading wins', async () => {
+    // The ordering guarantee documented on defaultDeps: DefiLlama is the broad
+    // baseline, protocol-native sources run after and take precedence.
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'contested', apy: 1 })])],
+      enrichmentAdapters: [apyStamper('broad-baseline', 10), apyStamper('first-party', 20)],
+      chainTvlSource: noChainTvl,
+    });
+
+    const [o] = await svc.getOpportunities();
+
+    expect(o.apy).toBe(20);
+  });
+
+  test('risk and score are computed after enrichment, not before', async () => {
+    // Matters because the risk engine reads TVL and the emissions share: scoring
+    // a pre-enrichment snapshot would rate rows on stale seed numbers.
+    const thinLiquidity: EnrichmentAdapter = {
+      source: 'drain',
+      getMetadata: () => ({ source: 'drain', description: 'test enricher', kind: 'enrichment' }),
+      fetchOpportunities: async () => [],
+      enrich: async opps => opps.map(o => ({ ...o, tvlUsd: 1_000_000 })),
+    };
+
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'drained', tvlUsd: 500e6 })])],
+      enrichmentAdapters: [thinLiquidity],
+      chainTvlSource: noChainTvl,
+    });
+
+    const [o] = await svc.getOpportunities();
+
+    // $1M TVL sits in the lowest band → 9, not the 1.5 the seed's $500M implies.
+    expect(o.risk.liquidityRisk.score).toBe(9);
+    expect(o.risk.liquidityRisk.rationale).toBe('$1M TVL — thin liquidity.');
+  });
+});
+
+describe('cache semantics', () => {
+  /** Counts how many times the pipeline actually ran. */
+  function countingOrigin() {
+    let calls = 0;
+    const adapter: ProtocolAdapter = {
+      source: 'counter',
+      getMetadata: () => ({ source: 'counter', description: 'counts calls', kind: 'origin' }),
+      fetchOpportunities: async () => {
+        calls += 1;
+        return [makeOpportunity({ id: 'counted', protocol: makeProtocol() })];
+      },
+    };
+    return { adapter, calls: () => calls };
+  }
+
+  test('serves a cached result for repeat calls inside the TTL', async () => {
+    const origin = countingOrigin();
+    const svc = createYieldService({
+      originAdapters: [origin.adapter],
+      enrichmentAdapters: [],
+      chainTvlSource: noChainTvl,
+      now: () => 1_000,
+      cacheTtlMs: 60_000,
+    });
+
+    await svc.getOpportunities();
+    await svc.getOpportunities();
+    await svc.getDashboard(); // both entry points share one cache
+
+    expect(origin.calls()).toBe(1);
+  });
+
+  test('reassembles once the TTL has elapsed', async () => {
+    const origin = countingOrigin();
+    let clock = 1_000;
+    const svc = createYieldService({
+      originAdapters: [origin.adapter],
+      enrichmentAdapters: [],
+      chainTvlSource: noChainTvl,
+      now: () => clock,
+      cacheTtlMs: 60_000,
+    });
+
+    await svc.getOpportunities();
+    clock += 59_999; // still inside the window
+    await svc.getOpportunities();
+    expect(origin.calls()).toBe(1);
+
+    clock += 1; // exactly at the boundary — the window is half-open
+    await svc.getOpportunities();
+    expect(origin.calls()).toBe(2);
+  });
+
+  test('each service instance starts with a cold cache', async () => {
+    const first = countingOrigin();
+    const second = countingOrigin();
+    const deps = { enrichmentAdapters: [], chainTvlSource: noChainTvl };
+
+    await createYieldService({ ...deps, originAdapters: [first.adapter] }).getOpportunities();
+    await createYieldService({ ...deps, originAdapters: [second.adapter] }).getOpportunities();
+
+    expect(first.calls()).toBe(1);
+    expect(second.calls()).toBe(1);
   });
 });
