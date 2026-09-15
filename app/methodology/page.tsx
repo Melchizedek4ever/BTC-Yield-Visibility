@@ -47,9 +47,20 @@ export default function MethodologyPage() {
 
         <Section title="Opportunity Score (1–10)">
           <p>
-            The headline ranking. For each source we compute a raw score of{' '}
-            <code style={{ color: 'var(--text)' }}>(APY × Health Score) ÷ (Risk Score × 1.2)</code>, rewarding high,
-            healthy yield and penalising risk.
+            The headline ranking. Emissions are discounted before anything else: we credit token
+            incentives at 30% of organic yield, because inflationary rewards decay in a way fee
+            income does not.
+          </p>
+          <pre className="mt-2 mb-2 p-3 rounded-lg overflow-x-auto text-xs"
+            style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text)' }}>
+{`realYield  = apyBase + 0.3 × apyReward
+rawScore   = realYield × (healthScore / 10) × (0.4 + 0.6 × sustainability)
+             ÷ (0.3 + riskScore / 10)`}
+          </pre>
+          <p>
+            <code style={{ color: 'var(--text)' }}>sustainability</code> is the organic share of headline APY, so
+            emission-heavy positions are damped twice. The <code style={{ color: 'var(--text)' }}>0.3</code> floor in the
+            divisor stops ultra-low-risk staking dividing toward infinity.
           </p>
           <p className="mt-2" style={{ color: 'var(--yellow)' }}>
             ⚠️ Important: the raw scores are then <strong>normalised relative to the current set of live sources</strong> —
@@ -62,8 +73,26 @@ export default function MethodologyPage() {
 
         <Section title="Risk Score & risk tiers (1–10)">
           <p className="mb-3">
-            A composite of smart-contract risk, audit status, protocol age, TVL depth, and impermanent-loss exposure.
-            Lower is safer. Every row and card is colour-coded by tier so you can read risk at a glance:
+            Computed from seven factors, each derived from a published attribute and each shown with its own
+            reasoning on every card. Lower is safer.
+          </p>
+          <ul className="mb-3 pl-4 flex flex-col gap-1" style={{ listStyle: 'disc' }}>
+            <li><strong>Smart contract</strong> (25%) &mdash; contract complexity, penalised when unaudited.</li>
+            <li><strong>Liquidity</strong> (17%) &mdash; TVL depth, as a proxy for how cleanly you can exit.</li>
+            <li><strong>Counterparty</strong> (16%) &mdash; how much third-party discretion sits between you and the yield.</li>
+            <li><strong>Impermanent loss</strong> (13%) &mdash; principal risk from holding a paired position.</li>
+            <li><strong>Reward quality</strong> (11%) &mdash; whether the yield accrues in Bitcoin or in a token that can decay.</li>
+            <li><strong>Yield sustainability</strong> (10%) &mdash; how much of the APY depends on token emissions.</li>
+            <li><strong>Protocol age</strong> (8%) &mdash; length of live track record.</li>
+          </ul>
+          <p className="mb-3">
+            The overall score is <strong>70% of that weighted average plus 30% of the single highest factor</strong>.
+            Risk does not average out: a position with one severe weakness is not made safe by five mild
+            strengths, and a plain average would rate an unaudited contract as &ldquo;moderate&rdquo; because the
+            liquidity happened to be deep. The worst-factor term only ever pulls a score upward.
+          </p>
+          <p className="mb-3">
+            Every row and card is colour-coded by tier so you can read risk at a glance:
           </p>
           <div className="flex flex-col gap-2">
             {TIERS.map(t => (
@@ -98,7 +127,11 @@ export default function MethodologyPage() {
         </Section>
 
         <Section title="Impermanent-loss (IL) risk">
-          <p>Only applies to DEX/LP positions, where the value of a paired position can diverge from simply holding the assets. Single-asset staking and lending show no IL risk.</p>
+          <p>
+            Only applies to DEX/LP positions, where the value of a paired position can diverge from simply
+            holding the assets. Single-asset staking and lending carry none. IL is a scored input to the risk
+            model, not just a label &mdash; a volatile pair can lose more principal than the yield pays back.
+          </p>
         </Section>
 
         <Section title="Data sourcing">
@@ -115,6 +148,8 @@ export default function MethodologyPage() {
             Sources marked <span className="px-1.5 py-0.5 rounded-full text-xs" style={{ background: '#64748B', color: '#fff' }}>Coming Soon</span>{' '}
             (e.g. Stacks&apos; native Bitcoin Staking, targeting Q3 2026) are shown for visibility with published target
             terms, sorted to the bottom, and excluded from all rankings, the &ldquo;best/safest APY&rdquo; stats, and TVL totals until they go live.
+            They are also left <strong>unrated</strong> rather than scored: an unlaunched protocol has no TVL and no
+            track record, and rating it on those absent signals would manufacture a number out of nothing.
           </p>
         </Section>
 
