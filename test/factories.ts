@@ -48,7 +48,7 @@ export function makeOpportunity(overrides: Partial<NormalizedOpportunity> = {}):
     ilRisk: 'None',
     minimumDeposit: null,
     healthScore: 8,
-    seedRiskScore: 4,
+    baseline: { apy: 6, tvlUsd: 30e6, reviewedAt: '2026-08-21' },
     status: 'live',
     updatedAt: '2026-07-30T00:00:00.000Z',
     ...overrides,

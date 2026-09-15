@@ -66,6 +66,7 @@ function toOpportunity(
     tvlUsd: o.tvlUsd,
     tvl7dChange: o.tvl7dChange,
     tvl30dChange: o.tvl30dChange,
+    baseline: o.baseline,
     lockup: o.lockup,
     ilRisk: o.ilRisk,
     minimumDeposit: o.minimumDeposit,

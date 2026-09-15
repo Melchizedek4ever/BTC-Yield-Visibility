@@ -40,8 +40,11 @@ export function describeAdapterContract(adapter: ProtocolAdapter) {
         expect(o.tvlUsd).toBeGreaterThanOrEqual(0);
         expect(o.healthScore).toBeGreaterThanOrEqual(1);
         expect(o.healthScore).toBeLessThanOrEqual(10);
-        expect(o.seedRiskScore).toBeGreaterThanOrEqual(1);
-        expect(o.seedRiskScore).toBeLessThanOrEqual(10);
+        // Every origin adapter must state the estimate it fell back from,
+        // and when a human last checked it.
+        expect(o.baseline.apy).toBeGreaterThanOrEqual(0);
+        expect(o.baseline.tvlUsd).toBeGreaterThanOrEqual(0);
+        expect(Number.isNaN(Date.parse(o.baseline.reviewedAt))).toBe(false);
 
         expect(['live', 'coming-soon']).toContain(o.status);
         expect(Number.isNaN(Date.parse(o.updatedAt))).toBe(false);

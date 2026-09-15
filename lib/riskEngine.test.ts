@@ -181,11 +181,10 @@ describe('counterparty risk', () => {
 });
 
 describe('overall score and explanation', () => {
-  test('is computed from the factors, not read from the curated seed value', () => {
-    const lowSeed = assessRisk(makeOpportunity({ seedRiskScore: 1 }));
-    const highSeed = assessRisk(makeOpportunity({ seedRiskScore: 10 }));
-    expect(lowSeed.overallScore).toBe(highSeed.overallScore);
-  });
+  // There is no longer a test that the engine ignores the curated risk score:
+  // the field was removed from NormalizedOpportunity entirely, so the engine
+  // cannot reach it. The curated values survive as ProtocolRecord.curatedRiskScore,
+  // for calibrating the engine against human judgement, and nothing wires them in.
 
   test('worked example: a mid-tier staking position', () => {
     // Factors for the default test opportunity:
@@ -252,7 +251,6 @@ const opportunityArb = fc
     ageMonths: fc.integer({ min: 0, max: 600 }),
     smartContractRisk: smartContractRiskArb,
     audited: fc.boolean(),
-    seedRiskScore: fc.double({ min: 1, max: 10, noNaN: true }),
     status: fc.constantFrom('live' as const, 'coming-soon' as const),
     ilRisk: fc.constantFrom<IlRisk>('None', 'Low', 'Medium', 'High'),
     category: fc.constantFrom<ProtocolCategory>('Staking', 'Lending', 'DEX/LP', 'Yield'),
@@ -264,7 +262,6 @@ const opportunityArb = fc
       apyBase: r.apy * (1 - r.rewardShare),
       apyReward: r.apy * r.rewardShare,
       tvlUsd: r.tvlUsd,
-      seedRiskScore: r.seedRiskScore,
       status: r.status,
       ilRisk: r.ilRisk,
       rewardAssets: r.rewardAssets,

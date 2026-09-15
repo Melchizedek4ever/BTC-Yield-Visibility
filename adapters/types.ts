@@ -28,12 +28,14 @@ export interface NormalizedOpportunity {
   minimumDeposit: number | null;
 
   healthScore: number;
+
   /**
-   * Curated overall risk (1–10). Authoritative today; the risk engine decomposes
-   * it into explainable sub-factors. When adapters supply full raw signals, the
-   * engine can compute the overall itself and this field goes away.
+   * The curated market estimate this row started from, preserved even after a
+   * live reading overwrites the fields above. Lets a consumer show both and
+   * see when the estimate and reality disagree — and `reviewedAt` says how
+   * long ago a human last checked the estimate.
    */
-  seedRiskScore: number;
+  baseline: { apy: number; tvlUsd: number; reviewedAt: string };
 
   status: 'live' | 'coming-soon';
   launchTarget?: string;

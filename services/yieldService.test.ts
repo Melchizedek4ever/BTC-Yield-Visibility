@@ -17,19 +17,19 @@ import type { GlobalStats, YieldProtocol } from '@/lib/types';
  * engine, and scoring engine all run for real.
  *
  * Scenario: every upstream source unavailable, so the pipeline falls back to
- * curated seed values throughout. That makes the run fully deterministic and
- * exercises the failure paths the dashboard depends on most.
+ * the curated market baseline throughout. That makes the run fully
+ * deterministic and exercises the failure paths the dashboard depends on most.
  *
- * Note the shape of this file: the service caches in module-global state with
- * no reset, so the whole suite can only observe ONE assembled result. That
- * limitation is the reason for the DI refactor these tests are protecting.
+ * The suite observes a single assembled result from the default service
+ * instance, which is why it reads as one snapshot. Tests needing more than one
+ * scenario build their own instance through createYieldService() below.
  */
 
-const POOLS_URL = 'https://yields.llama.fi/pools';
+const POOLS_URL = 'https://yields.llama.fi/poolsEnriched';
 const CHAIN_TVL_URL = 'https://api.llama.fi/v2/historicalChainTvl/Stacks';
 
 const server = setupServer(
-  http.get(POOLS_URL, () => HttpResponse.json({ data: [] })),
+  http.get(POOLS_URL, () => HttpResponse.json({ status: 'success', data: [] })),
   http.get(CHAIN_TVL_URL, () => HttpResponse.json([])),
   http.get('https://api.velar.co/pools/:lpToken', () => new HttpResponse(null, { status: 404 })),
 );
@@ -358,6 +358,34 @@ describe('chain TVL source failure', () => {
     const { stats: s } = await svc.getDashboard();
 
     expect(s.totalTvl).toBe(0);
+  });
+});
+
+describe('curated baseline survives enrichment', () => {
+  test('a live reading overwrites the headline figures but not the baseline', async () => {
+    // This is what lets the UI show "live 0.8% / estimate 3.5%" rather than
+    // silently replacing one with the other. If enrichment overwrote the
+    // baseline, the two could never be compared and a wrong estimate would
+    // disappear the moment real data arrived.
+    const svc = createYieldService({
+      originAdapters: [
+        originStub([
+          makeOpportunity({
+            id: 'enriched',
+            apy: 3.5,
+            tvlUsd: 75_900_000,
+            baseline: { apy: 3.5, tvlUsd: 75_900_000, reviewedAt: '2026-08-21' },
+          }),
+        ]),
+      ],
+      enrichmentAdapters: [apyStamper('live-source', 0.8)],
+      chainTvlSource: noChainTvl,
+    });
+
+    const [o] = await svc.getOpportunities();
+
+    expect(o.apy).toBe(0.8); // the live reading wins the headline
+    expect(o.baseline).toEqual({ apy: 3.5, tvlUsd: 75_900_000, reviewedAt: '2026-08-21' });
   });
 });
 
