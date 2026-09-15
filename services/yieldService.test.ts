@@ -72,7 +72,12 @@ describe('pipeline assembly', () => {
     for (const o of opportunities) {
       expect(o.risk).toBeDefined();
       expect(o.score).toBeDefined();
-      expect(o.risk.overallScore).toBeGreaterThan(0);
+      // 0 is the unrated sentinel, reserved for rows that have not launched.
+      if (o.status === 'coming-soon') {
+        expect(o.risk.overallScore).toBe(0);
+      } else {
+        expect(o.risk.overallScore).toBeGreaterThan(0);
+      }
     }
   });
 
@@ -120,14 +125,17 @@ describe('risk decomposition (worked example: Zest — BTC Supply)', () => {
     expect(zest().yieldSustainabilityRisk.rationale).toBe('0% of APY from token emissions.');
   });
 
-  test('CURRENT BEHAVIOUR: overall score passes through the curated seed value', () => {
-    // Pinned deliberately. The overall is the curated 3.5 and is NOT derived
-    // from the four factors above — the explanation names the two highest
-    // computed factors while the headline number ignores them. Closing that
-    // gap is the next planned change; this test documents what it replaces.
-    expect(zest().overallScore).toBe(3.5);
+  test('derives the overall score from the factors, not the curated seed value', () => {
+    // Continuing the worked example, with counterparty 4.5 (Lending):
+    //   weighted mean = 3(.25) + 3(.17) + 4.5(.16) + 1(.13) + 1(.11)
+    //                 + 1(.10) + 4.5(.08) = 2.68
+    //   worst factor  = 4.5
+    //   overall       = 0.7 * 2.68 + 0.3 * 4.5 = 3.226 -> 3.2
+    // The curated seed value for this row is 3.5 and is deliberately unused,
+    // so the headline number and the reasons beneath it now agree.
+    expect(zest().overallScore).toBe(3.2);
     expect(zest().explanation).toBe(
-      'Overall risk 3.5/10 — driven mostly by protocol age and counterparty risk.',
+      'Overall risk 3.2/10 — driven mostly by protocol age and counterparty risk.',
     );
   });
 });
@@ -140,7 +148,10 @@ describe('dashboard stats', () => {
 
   test('reports best and safest APY across live rows only', () => {
     expect(stats.bestApy).toBe(45); // alex-stx-farm
-    expect(stats.safestApy).toBe(10); // dual-stacking, the highest APY at risk <= 3
+    // Only native-stacking now scores at or below 3. Under the curated scores
+    // dual-stacking also qualified at 2.2; computed, its six-month track
+    // record lifts it to 3.2 and it leaves the band.
+    expect(stats.safestApy).toBe(9.2); // native-stacking
   });
 
   test('counts live, upcoming, and estimated rows', () => {
@@ -154,7 +165,7 @@ describe('legacy dashboard facade', () => {
   test('flattens each opportunity to the shape the frontend reads', () => {
     const zest = protocols.find(p => p.id === 'zest-btc-supply')!;
     expect(zest.name).toBe('Zest — BTC Supply');
-    expect(zest.riskScore).toBe(3.5);
+    expect(zest.riskScore).toBe(3.2);
     expect(zest.apy).toBe(3.5);
     expect(zest.riskFactors?.map(f => f.key)).toEqual([
       'smartContract',

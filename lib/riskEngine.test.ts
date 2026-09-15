@@ -181,31 +181,60 @@ describe('counterparty risk', () => {
 });
 
 describe('overall score and explanation', () => {
-  // Characterization: the overall is the curated seed value, NOT computed
-  // from the sub-factors. Changing that is a deliberate future decision.
-  test('overall score is the curated seed risk score', () => {
-    const risk = assessRisk(makeOpportunity({ seedRiskScore: 4.2 }));
-    expect(risk.overallScore).toBe(4.2);
+  test('is computed from the factors, not read from the curated seed value', () => {
+    const lowSeed = assessRisk(makeOpportunity({ seedRiskScore: 1 }));
+    const highSeed = assessRisk(makeOpportunity({ seedRiskScore: 10 }));
+    expect(lowSeed.overallScore).toBe(highSeed.overallScore);
+  });
+
+  test('worked example: a mid-tier staking position', () => {
+    // Factors for the default test opportunity:
+    //   smart contract   Low, audited          3
+    //   liquidity        $30M TVL              4.5
+    //   protocol age     24 months             3
+    //   sustainability   1 of 6 APY emitted    2.5
+    //   impermanent loss None                  1
+    //   reward quality   sBTC                  1
+    //   counterparty     Staking               2
+    // weighted mean 2.565; highest single factor 4.5 (liquidity)
+    // overall = 0.7 * 2.565 + 0.3 * 4.5 = 3.1455 -> 3.1
+    expect(assessRisk(makeOpportunity()).overallScore).toBe(3.1);
+  });
+
+  test('a single severe factor is not averaged away by mild ones', () => {
+    // An unaudited High-complexity contract scores 10 while every other factor
+    // stays mild. The weighted mean alone reads 4.32 — a "moderate" rating for
+    // a position that can lose everything to one contract failure.
+    const risk = assessRisk(
+      makeOpportunity({ protocol: makeProtocol({ smartContractRisk: 'High', audited: false, audits: [] }) })
+    );
+    expect(risk.smartContractRisk.score).toBe(10);
+    expect(risk.overallScore).toBe(6);
   });
 
   test('explanation names the two dominant risk drivers', () => {
     // Thin liquidity (9) and young age (8.5) dominate a safe contract (1.5)
-    // and organic yield (1).
+    // and organic yield (1). weighted mean 3.245, worst factor 9
+    // overall = 0.7 * 3.245 + 0.3 * 9 = 4.9715 -> 5
     const risk = assessRisk(
       makeOpportunity({
         tvlUsd: 1e6,
         apy: 10,
         apyBase: 10,
         apyReward: 0,
-        seedRiskScore: 7,
         protocol: makeProtocol({ protocolAgeMonths: 3, smartContractRisk: 'Very Low', audited: true }),
       })
     );
-    expect(risk.explanation).toBe('Overall risk 7/10 — driven mostly by liquidity and protocol age risk.');
+    expect(risk.overallScore).toBe(5);
+    expect(risk.explanation).toBe('Overall risk 5/10 — driven mostly by liquidity and protocol age risk.');
   });
 
-  test('coming-soon opportunities are unrated', () => {
-    const risk = assessRisk(makeOpportunity({ status: 'coming-soon' }));
+  test('coming-soon opportunities are unrated, not scored on meaningless factors', () => {
+    // An unlaunched protocol has no TVL and no track record, so liquidity and
+    // age would read near the ceiling and manufacture a rating out of nothing.
+    // 0 sits outside the 1-10 scale and means "not rated".
+    const risk = assessRisk(makeOpportunity({ status: 'coming-soon', tvlUsd: 0 }));
+    expect(risk.overallScore).toBe(0);
     expect(risk.explanation).toBe('Unrated until live.');
   });
 });
@@ -225,6 +254,9 @@ const opportunityArb = fc
     audited: fc.boolean(),
     seedRiskScore: fc.double({ min: 1, max: 10, noNaN: true }),
     status: fc.constantFrom('live' as const, 'coming-soon' as const),
+    ilRisk: fc.constantFrom<IlRisk>('None', 'Low', 'Medium', 'High'),
+    category: fc.constantFrom<ProtocolCategory>('Staking', 'Lending', 'DEX/LP', 'Yield'),
+    rewardAssets: fc.array(fc.constantFrom('BTC', 'sBTC', 'STX', 'USDA', 'ALEX'), { maxLength: 3 }),
   })
   .map(r =>
     makeOpportunity({
@@ -234,7 +266,10 @@ const opportunityArb = fc
       tvlUsd: r.tvlUsd,
       seedRiskScore: r.seedRiskScore,
       status: r.status,
+      ilRisk: r.ilRisk,
+      rewardAssets: r.rewardAssets,
       protocol: makeProtocol({
+        category: r.category,
         protocolAgeMonths: r.ageMonths,
         smartContractRisk: r.smartContractRisk,
         audited: r.audited,
@@ -248,10 +283,55 @@ describe('invariants (property-based)', () => {
     fc.assert(
       fc.property(opportunityArb, o => {
         const risk = assessRisk(o);
-        for (const f of [risk.smartContractRisk, risk.liquidityRisk, risk.protocolAgeRisk, risk.yieldSustainabilityRisk]) {
+        for (const f of [
+          risk.smartContractRisk,
+          risk.liquidityRisk,
+          risk.protocolAgeRisk,
+          risk.yieldSustainabilityRisk,
+          risk.impermanentLossRisk,
+          risk.rewardQualityRisk,
+          risk.counterpartyRisk,
+        ]) {
           expect(f.score).toBeGreaterThanOrEqual(1);
           expect(f.score).toBeLessThanOrEqual(10);
         }
+      })
+    );
+  });
+
+  test('the overall score stays on the 1-10 scale, or is 0 when unrated', () => {
+    fc.assert(
+      fc.property(opportunityArb, o => {
+        const { overallScore } = assessRisk(o);
+        if (o.status === 'coming-soon') {
+          expect(overallScore).toBe(0);
+        } else {
+          expect(overallScore).toBeGreaterThanOrEqual(1);
+          expect(overallScore).toBeLessThanOrEqual(10);
+        }
+      })
+    );
+  });
+
+  test('the overall always lies between the mildest and the worst factor', () => {
+    // The worst-factor term only ever pulls risk upward, and can never push an
+    // opportunity outside the range its own factors describe.
+    fc.assert(
+      fc.property(opportunityArb, o => {
+        fc.pre(o.status === 'live');
+        const risk = assessRisk(o);
+        const scores = [
+          risk.smartContractRisk.score,
+          risk.liquidityRisk.score,
+          risk.protocolAgeRisk.score,
+          risk.yieldSustainabilityRisk.score,
+          risk.impermanentLossRisk.score,
+          risk.rewardQualityRisk.score,
+          risk.counterpartyRisk.score,
+        ];
+        // Tolerance absorbs the single-decimal rounding of the published score.
+        expect(risk.overallScore).toBeGreaterThanOrEqual(Math.min(...scores) - 0.05);
+        expect(risk.overallScore).toBeLessThanOrEqual(Math.max(...scores) + 0.05);
       })
     );
   });

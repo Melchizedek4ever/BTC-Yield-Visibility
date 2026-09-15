@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import fc from 'fast-check';
 import { assessRisk } from '@/lib/riskEngine';
 import { buildScores } from '@/lib/scoringEngine';
-import { makeOpportunity } from '@/test/factories';
+import { makeOpportunity, makeRiskAssessment } from '@/test/factories';
 import type { NormalizedOpportunity } from '@/adapters/types';
 import type { RiskAssessment } from '@/domain/riskAssessment';
 
@@ -36,8 +36,11 @@ describe('score components', () => {
   });
 
   test('risk penalty is the overall risk scaled to 0–1', () => {
-    const o = makeOpportunity({ seedRiskScore: 7 });
-    expect(score([o]).get(o.id)!.riskPenalty).toBe(0.7);
+    // Supplies the risk directly: this is the scoring seam contract with
+    // whatever the risk engine produces, not a test of the engine itself.
+    const o = makeOpportunity();
+    const scores = buildScores([o], new Map([[o.id, makeRiskAssessment({ overallScore: 7 })]]));
+    expect(scores.get(o.id)!.riskPenalty).toBe(0.7);
   });
 });
 
