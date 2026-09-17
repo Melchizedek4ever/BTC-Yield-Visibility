@@ -1,5 +1,15 @@
 'use client';
 
+/**
+ * Dashboard view state — what the reader has chosen to look at, never the data
+ * itself. Yield figures come from the service through SWR; mixing them into
+ * client state would give the same number two homes and two lifetimes.
+ *
+ * Persisted so a returning reader keeps their view. Persisting a stale APY
+ * would be actively harmful, which is the other reason this store holds only
+ * preferences.
+ */
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Category, SortKey } from './types';

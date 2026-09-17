@@ -1,3 +1,12 @@
+/**
+ * Presentation helpers. Formatting only — no business rules live here, because
+ * a rule hidden in a formatter is a rule nothing tests.
+ *
+ * The rounding is deliberately coarse: our inputs are readings from third-party
+ * endpoints and human estimates, and rendering a TVL to the cent would imply a
+ * precision the underlying data does not have.
+ */
+
 export function formatTvl(val: number): string {
   if (val >= 1_000_000_000) return `$${(val / 1_000_000_000).toFixed(2)}B`;
   if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
