@@ -2,8 +2,8 @@
 
 **Tier:** 2 — Protocol-native
 **Category:** Protocol-native (DEX/LP, farming)
-**Adapter kind:** origin, currently stubbed at `adapters/alexAdapter.ts`
-**Status:** blocked on Hiro contract-call (no public REST API found)
+**Adapter kind:** enrichment — `adapters/alexAdapter.ts`
+**Status:** **built** — public REST API found and wired 2026-09-17
 
 ## What it is
 
@@ -20,27 +20,46 @@ numbers move, even without an API.
 
 ## Access
 
-No public REST API for pool/yield data was found during this research —
-`docs.alexlab.co/developers` is largely whitepaper/architecture content, not
-an API reference. Data is on-chain in ALEX's deployed Clarity contracts.
+**Corrects an earlier finding on this page.** A public, unauthenticated pool
+API does exist; it is simply not linked from the developer docs.
+
+- `GET https://api.alexlab.co/v2/public/pools` — every pool, 168 as of writing
+- Auth: none. Measured response ~9.6s (whole-list only, no per-pool form)
+- Fields: `pool_id`, `token_x`, `token_y`, `apr_24h`, `apr_7d`, `balance_x`,
+  `balance_y`, `volume_24h`, `volume_7d`, `fee_24h`, `fee_rate_x`,
+  `total_supply`, `sync_at`
+- `https://api.alexgo.io/v1/allswaps` also answers, with a different shape
+
+**ENCODING — the thing that will bite you.** Every numeric field is an
+on-chain fixed-point integer scaled by **1e18**, and nothing documents this.
+`apr_7d: 43582955428507760` is 4.358%. The scale is pinned by `fee_rate_x`
+arriving as `5e15` for a pool whose swap fee is 0.5%. Decoding at 1e8 — the
+usual Clarity convention — overstates by a factor of 10^10.
 
 ## What it feeds
 
-`apy`, `apyBase`, `apyReward`, `tvlUsd` for both ALEX opportunities.
-Currently covered indirectly via `defiLlamaProject: "alex"` in the DefiLlama
-enrichment adapter (Tier 3) — that's the live path today.
+`apyBase` for `alex-stx-farm` (pool 13) and `alex-sbtc-alex` (pool 125), from
+`apr_7d` — realized trading-fee yield computed from actual volume. The 7-day
+window is preferred over `apr_24h`, which one large trade can skew.
+
+Not claimed: `apyReward` (emissions are paid by a separate farming contract
+this endpoint does not cover) and `tvlUsd` (balances are in token units, so
+valuing a pool means pricing arbitrary SIP-10 tokens).
 
 ## Caveats
 
-DefiLlama's ALEX numbers come from a community-maintained scraper in
-DefiLlama's `yield-server` repo, not from ALEX directly — one hop removed
-from source, and only as fresh/correct as that scraper.
+**Pool 125 (ALEX/sBTC) holds no liquidity at all** — zero balances on both
+sides, zero APR. The seed data previously described it as a 22.4% / $12M
+opportunity. Whether the row should stay listed is a product decision; the
+numbers at least now match reality.
+
+DefiLlama has no ALEX pools at all, so there is no aggregator cross-check
+available for these figures.
 
 ## Recommendation
 
-Don't build a bespoke `alex.com` REST client — none exists to build against.
-When ready to close the DefiLlama-dependency gap, read ALEX's farm/pool
-contracts directly via the Hiro contract-call proxy (see
-20-hiro-stacks-api.md) instead of chasing an undocumented private API.
-Until then, the current DefiLlama-enrichment path is the pragmatic choice —
-correctly reflected in the stub comment in `adapters/alexAdapter.ts`.
+Built. The remaining gap is the emissions half: ALEX's farm contracts publish
+reward rates that this endpoint does not, so `apyReward` stays curated and
+rows carrying one stay flagged estimated. Closing it means a contract read via
+the Hiro proxy (see 20-hiro-stacks-api.md) — worth doing only once a pool with
+real liquidity actually runs a farm.

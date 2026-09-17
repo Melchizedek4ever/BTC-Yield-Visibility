@@ -24,6 +24,19 @@ data to believe when two sources disagree.
 read-only contract-call proxy) > protocol-native REST API (Tier 2) >
 DefiLlama/community adapter (Tier 3) > anything else.
 
+A curated estimate sits below all of them. That ordering is not decoration —
+it decides which value wins in `adapters/`, and getting it backwards is a real
+bug class: the DefiLlama adapter once judged live readings against our own
+curated range and rejected the truth for disagreeing with a guess.
+
+## Start here
+
+[`01-source-coverage.md`](01-source-coverage.md) is the live picture: what
+each opportunity's numbers actually come from today, what is still a human
+guess, what makes each source different, and how adapter design has to change
+with the yield mechanic (consensus / utilization / trading fees / managed).
+The per-source profiles below are the research behind it.
+
 ## An architectural finding worth flagging
 
 Most of the Stacks protocols we represent do **not** have a bespoke,

@@ -2,8 +2,34 @@
 
 **Tier:** 2 — Protocol-native
 **Category:** Protocol-native (Liquid Staking)
-**Adapter kind:** origin
-**Status:** blocked on Hiro contract-call (no public REST API found)
+**Adapter kind:** enrichment — `adapters/stackingDaoAdapter.ts`
+**Status:** **built** — public stats endpoint found and wired 2026-09-17
+
+> **Corrects an earlier finding on this page.** A public, unauthenticated
+> stats endpoint does exist at `https://app.stackingdao.com/api/stats`
+> (measured ~4s, no auth). It returns realized APYs for every StackingDAO
+> product *and* for native PoX stacking:
+>
+> ```json
+> { "pox_cycle": 143, "apy_native": 5.93, "apy_ststx": 3.39,
+>   "apy_ststxbtc": 3.81, "apy_stbtc": 2.89, "stackingdao_tvl": 45672574,
+>   "stx_price": 0.249139, "btc_price": 76610.86, "ratio": 1.1859 }
+> ```
+>
+> This is the highest-value endpoint found in the whole research pass. PoX
+> pays in BTC transferred by miners each cycle, so stacking APY has to be
+> *derived* from realized payouts — `hiroPoxAdapter` deliberately declines
+> that derivation. StackingDAO already does it and publishes the result,
+> which supplies a real rate for two rows that were previously pure guesswork.
+>
+> Two caveats. The adapter takes APY only: `stackingdao_tvl` is a single
+> protocol-wide total covering stSTX, stSTXbtc and stBTC together, so pinning
+> it to one row would overstate that row by the size of the others. And an
+> operator publishing their own rate has an interest in it — this ranks below
+> a chain read, and a chain-derived cycle yield should replace it eventually.
+>
+> `stx_price` and `btc_price` also arrive here, which is a candidate
+> replacement for the CoinGecko dependency in `hiroPoxAdapter`.
 
 ## What it is
 

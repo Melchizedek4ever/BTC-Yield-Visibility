@@ -2,8 +2,18 @@
 
 **Tier:** 2 — Protocol-native
 **Category:** Protocol-native (DEX/LP — StableSwap)
-**Adapter kind:** origin
-**Status:** **build — real public API, no auth**
+**Adapter kind:** enrichment — `adapters/bitflowAdapter.ts`
+**Status:** **built** — wired 2026-09-17 (TVL only)
+
+> **Verified 2026-09-17.** The ticker answers in ~6s with 46 pools and
+> $787,386 of total liquidity across the whole DEX. Fifteen pools are
+> BTC-related; the largest are `stableswap-pool-sbtc-pbtc-v-1-1` ($140,508)
+> and `xyk-pool-sbtc-stx-v-1-1` ($68,107) — the latter being the pool behind
+> `bitflow-sbtc-stx`, which the seed data carried at **$5,000,000**. That 73x
+> gap is the single largest error the review found.
+>
+> Both sBTC pools showed $0 of 24-hour volume, so their trading-fee yield is
+> genuinely zero right now — which is a measurement, not an estimate.
 
 ## What it is
 
