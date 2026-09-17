@@ -64,6 +64,8 @@ export interface ProtocolRecord {
      * per-product rates, so several rows may each claim their own.
      */
     stackingDaoApyKey?: string;
+    /** Numeric pool id on ALEX's AMM, for realized trading-fee APR. */
+    alexPoolId?: number;
   };
 }
 
@@ -339,6 +341,7 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     status: "live",
     externalIds: {
       defiLlamaProject: "alex",
+      alexPoolId: 125,
     },
   },
   {
@@ -400,6 +403,7 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     status: "live",
     externalIds: {
       defiLlamaProject: "alex",
+      alexPoolId: 13,
     },
   },
   {

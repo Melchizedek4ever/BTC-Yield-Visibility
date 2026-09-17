@@ -37,5 +37,7 @@ export interface Protocol {
      * 'native' | 'ststx' | 'ststxbtc' | 'stbtc'. See stackingDaoAdapter.
      */
     stackingDaoApyKey?: string;
+    /** Numeric pool id on ALEX's AMM. See alexAdapter. */
+    alexPoolId?: number;
   };
 }

@@ -37,13 +37,13 @@ export interface YieldServiceDeps {
 
 export const defaultDeps: YieldServiceDeps = {
   // Register data sources here. Adding a protocol = add its adapter to this list.
-  originAdapters: [seedAdapter, alexAdapter],
+  originAdapters: [seedAdapter],
   // Order matters: each enricher overlays the previous one's output, so the
   // list runs from least to most authoritative. DefiLlama is the broad
   // third-party baseline; protocol-native sources like Velar override it for
   // pools both cover; chain state last, since a figure read straight off the
   // chain beats anyone's reporting of it.
-  enrichmentAdapters: [defillamaAdapter, velarAdapter, stackingDaoAdapter, hiroPoxAdapter],
+  enrichmentAdapters: [defillamaAdapter, alexAdapter, velarAdapter, stackingDaoAdapter, hiroPoxAdapter],
   chainTvlSource: fetchStacksChainTvl,
   now: Date.now,
   cacheTtlMs: 60_000,
