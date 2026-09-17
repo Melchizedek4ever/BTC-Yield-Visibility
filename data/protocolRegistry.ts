@@ -58,6 +58,12 @@ export interface ProtocolRecord {
      * to more than one opportunity would double-count the same STX.
      */
     stacksPox?: boolean;
+    /**
+     * Which realized rate to take from StackingDAO's stats endpoint —
+     * 'native' | 'ststx' | 'ststxbtc' | 'stbtc'. Unlike stacksPox these are
+     * per-product rates, so several rows may each claim their own.
+     */
+    stackingDaoApyKey?: string;
   };
 }
 
@@ -118,9 +124,9 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     minimumDeposit: null,
 
     status: "live",
-    externalIds: {
-      defiLlamaProject: "stacks",
-    },
+    // No live source yet: the PoX component is covered by native-stacking and
+    // the sBTC component has no published rate. Left deliberately unmapped.
+    externalIds: {},
   },
   {
     id: "native-stacking",
@@ -149,8 +155,8 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
 
     status: "live",
     externalIds: {
-      defiLlamaProject: "stacks",
       stacksPox: true,
+      stackingDaoApyKey: "native",
     },
   },
   {
@@ -211,6 +217,7 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     status: "live",
     externalIds: {
       defiLlamaProject: "stackingdao",
+      stackingDaoApyKey: "ststx",
     },
   },
   {
@@ -271,7 +278,7 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
 
     status: "live",
     externalIds: {
-      defiLlamaProject: "granite-protocol",
+      defiLlamaProject: "granite",
     },
   },
   {

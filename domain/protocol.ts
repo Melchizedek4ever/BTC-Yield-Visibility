@@ -32,5 +32,10 @@ export interface Protocol {
     velarPool?: string;
     /** True for the row representing the whole PoX stacking pool. */
     stacksPox?: boolean;
+    /**
+     * Which realized rate to take from StackingDAO's stats endpoint:
+     * 'native' | 'ststx' | 'ststxbtc' | 'stbtc'. See stackingDaoAdapter.
+     */
+    stackingDaoApyKey?: string;
   };
 }
