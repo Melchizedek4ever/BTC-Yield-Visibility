@@ -9,8 +9,27 @@
  * Treat this file as perishable. `reviewedAt` records when a human last
  * checked each row against reality — an old date is a defect, because a stale
  * estimate presented with a confident APY is worse than no figure at all.
- * Zest is the cautionary case: this file long carried 3.5% for a pool that
- * DefiLlama reports paying 0%.
+ *
+ * ── 2026-09-17 review ──────────────────────────────────────────────────────
+ * Every row was checked against a live source. The previous figures were not
+ * mildly stale; most were wrong by a factor of three to seventy, always in the
+ * flattering direction. Recorded here because the size of that drift is the
+ * argument for the adapter layer, and because the next reviewer deserves to
+ * know what this file looked like when nobody was checking it:
+ *
+ *   bitflow-sbtc-stx    $5,000,000  →     $68,107   (73x over)
+ *   alex-stx-farm       $9,000,000  →    $273,000   (33x over)
+ *   alex-sbtc-alex     $12,000,000  →          $0   (pool is empty)
+ *   hermetica-hbtc     $45,000,000  →  $5,600,000   (8x over)
+ *   granite-btc-supply $26,000,000  →  $6,900,000   (3.8x over)
+ *   arkadiko-diko       $3,000,000  →  $1,000,000   (3x over)
+ *   zest-btc-supply          3.50%  →      0.00%    (pays nothing)
+ *   native-stacking          9.20%  →      5.93%
+ *   stackingdao-ststx        8.70%  →      3.39%
+ *
+ * Each row below says which source its numbers came from and, where a figure
+ * could NOT be verified, says that outright rather than letting an unchecked
+ * number inherit a fresh review date.
  */
 export interface MarketBaseline {
   protocolId: string;
@@ -27,6 +46,8 @@ export interface MarketBaseline {
 
 export const MARKET_BASELINE: MarketBaseline[] = [
   {
+    // Pre-launch. These are published launch targets, not estimates of a
+    // market that exists — nothing to verify against yet.
     protocolId: "bitcoin-staking",
     apy: 3,
     apyBase: 3,
@@ -38,128 +59,171 @@ export const MARKET_BASELINE: MarketBaseline[] = [
     reviewedAt: "2026-08-21",
   },
   {
+    // APY anchored to the measured native PoX rate (5.93%, StackingDAO stats).
+    // Dual stacking pays that plus an sBTC component nobody publishes, so the
+    // figure here is a floor, not a forecast — it should read no higher than
+    // the rate we can actually measure.
+    //
+    // TVL: deliberately NOT the ~$110M PoX pool. Dual stackers are a subset of
+    // all stackers, already counted under native-stacking; repeating the pool
+    // total here would double-count the same STX across two rows. No source
+    // publishes the subset, so this stays a conservative placeholder.
     protocolId: "dual-stacking",
-    apy: 10,
-    apyBase: 10,
+    apy: 5.93,
+    apyBase: 5.93,
     apyReward: 0,
-    apyRange: { min: 7, max: 10 },
-    tvlUsd: 100000000,
-    tvl7dChange: 3.2,
-    tvl30dChange: 12.4,
-    reviewedAt: "2026-08-21",
+    apyRange: { min: 4, max: 10 },
+    tvlUsd: 25000000,
+    tvl7dChange: 0,
+    tvl30dChange: 0,
+    reviewedAt: "2026-09-17",
   },
   {
+    // Verified against PoX chain state and StackingDAO's published rate:
+    // cycle 143, 441,576,024 STX stacked at $0.2491 = ~$110.0M, paying 5.93%.
+    // Both figures now come from adapters; this is the fallback if they fail.
     protocolId: "native-stacking",
-    apy: 9.2,
-    apyBase: 9.2,
+    apy: 5.93,
+    apyBase: 5.93,
     apyReward: 0,
-    apyRange: { min: 7, max: 11 },
-    // Reviewed against PoX chain state (cycle 143: 441.6M STX stacked, which
-    // at the then-current STX price is ~$114.7M). The previous $200,000,000
-    // was high by roughly three quarters. Rounded deliberately: this is the
-    // fallback for when the live reading cannot be fetched, not a measurement.
-    tvlUsd: 115000000,
+    apyRange: { min: 4, max: 9 },
+    tvlUsd: 110000000,
     tvl7dChange: 1.1,
     tvl30dChange: 5.2,
-    reviewedAt: "2026-09-15",
+    reviewedAt: "2026-09-17",
   },
   {
+    // TVL verified against DefiLlama ($5.57M). APY NOT VERIFIED — Hermetica
+    // publishes no publicly reachable rate, and a delta-neutral funding-rate
+    // strategy has none to read on chain. 12.5% is an unchecked carry-over
+    // from the previous curation and should be treated as the least reliable
+    // number in this file.
     protocolId: "hermetica-hbtc",
     apy: 12.5,
     apyBase: 3.5,
     apyReward: 9,
     apyRange: { min: 8, max: 16 },
-    tvlUsd: 45000000,
-    tvl7dChange: 4.1,
-    tvl30dChange: 18.3,
-    reviewedAt: "2026-08-21",
+    tvlUsd: 5600000,
+    tvl7dChange: 0,
+    tvl30dChange: 0,
+    reviewedAt: "2026-09-17",
   },
   {
+    // APY from StackingDAO's own stats endpoint (3.39%, now adapter-fed).
+    // TVL from DefiLlama ($31.2M) rather than StackingDAO's own $45.7M: their
+    // figure covers stSTX, stSTXbtc and stBTC together, and this row is stSTX
+    // alone. The third-party number is the conservative choice.
     protocolId: "stackingdao-ststx",
-    apy: 8.7,
-    apyBase: 8.7,
+    apy: 3.39,
+    apyBase: 3.39,
     apyReward: 0,
-    apyRange: { min: 7, max: 10 },
-    tvlUsd: 20000000,
+    apyRange: { min: 2, max: 8 },
+    tvlUsd: 31000000,
     tvl7dChange: 0.8,
     tvl30dChange: 3.1,
-    reviewedAt: "2026-08-21",
+    reviewedAt: "2026-09-17",
   },
   {
+    // DefiLlama reports this pool paying 0% with ~190 observations and a
+    // 30-day mean of 0.007%. This file previously carried 3.5% — the case that
+    // prompted the zero-vs-missing fix in defillamaAdapter. TVL $50.6M.
     protocolId: "zest-btc-supply",
-    apy: 3.5,
-    apyBase: 3.5,
+    apy: 0,
+    apyBase: 0,
     apyReward: 0,
-    apyRange: { min: 2, max: 5 },
-    tvlUsd: 75900000,
+    apyRange: { min: 0, max: 5 },
+    tvlUsd: 50600000,
     tvl7dChange: 2.2,
     tvl30dChange: 9.8,
-    reviewedAt: "2026-08-21",
+    reviewedAt: "2026-09-17",
   },
   {
+    // TVL verified against DefiLlama ($6.86M) — note the slug is `granite`,
+    // not `granite-protocol`, which resolves to nothing. APY NOT VERIFIED:
+    // Granite exposes no public market endpoint, and the supply rate has to be
+    // read from the reserve contract. 4.8% is an unchecked carry-over.
     protocolId: "granite-btc-supply",
     apy: 4.8,
     apyBase: 4.8,
     apyReward: 0,
-    apyRange: { min: 3, max: 6 },
-    tvlUsd: 26000000,
-    tvl7dChange: 1.5,
-    tvl30dChange: 7.2,
-    reviewedAt: "2026-08-21",
-  },
-  {
-    protocolId: "bitflow-sbtc-stx",
-    apy: 14.2,
-    apyBase: 6,
-    apyReward: 8.2,
-    apyRange: { min: 8, max: 22 },
-    tvlUsd: 5000000,
-    tvl7dChange: 3.5,
-    tvl30dChange: 14,
-    reviewedAt: "2026-08-21",
-  },
-  {
-    protocolId: "alex-sbtc-alex",
-    apy: 22.4,
-    apyBase: 4,
-    apyReward: 18.4,
-    apyRange: { min: 12, max: 35 },
-    tvlUsd: 12000000,
-    tvl7dChange: 2.1,
-    tvl30dChange: 5.5,
-    reviewedAt: "2026-08-21",
-  },
-  {
-    protocolId: "velar-sbtc",
-    apy: 1.26,
-    apyBase: 1.26,
-    apyReward: 0,
-    apyRange: { min: 0.5, max: 3 },
-    tvlUsd: 86516,
+    apyRange: { min: 1, max: 6 },
+    tvlUsd: 6900000,
     tvl7dChange: 0,
     tvl30dChange: 0,
-    reviewedAt: "2026-08-21",
+    reviewedAt: "2026-09-17",
   },
   {
+    // Verified against Bitflow's ticker: $68,107 liquidity and $0 of 24-hour
+    // volume. No volume means no trading fees, so the fee component is 0 —
+    // that is a measurement, not a guess. No incentive program is evidenced
+    // either, so the previous 14.2% (6 base + 8.2 reward) had nothing behind
+    // it. TVL is now adapter-fed; this is the fallback.
+    protocolId: "bitflow-sbtc-stx",
+    apy: 0,
+    apyBase: 0,
+    apyReward: 0,
+    apyRange: { min: 0, max: 8 },
+    tvlUsd: 68107,
+    tvl7dChange: 0,
+    tvl30dChange: 0,
+    reviewedAt: "2026-09-17",
+  },
+  {
+    // ALEX pool 125 (ALEX/sBTC) exists but holds NO liquidity at all — zero
+    // balances on both sides, zero APR. The previous 22.4% / $12M described an
+    // opportunity a user cannot take. Whether this row should remain listed at
+    // all is a product decision; the numbers, at least, now match reality.
+    protocolId: "alex-sbtc-alex",
+    apy: 0,
+    apyBase: 0,
+    apyReward: 0,
+    apyRange: { min: 0, max: 25 },
+    tvlUsd: 0,
+    tvl7dChange: 0,
+    tvl30dChange: 0,
+    reviewedAt: "2026-09-17",
+  },
+  {
+    // Live from Velar's pool API (1.07% APY, $104,309 TVL).
+    protocolId: "velar-sbtc",
+    apy: 1.07,
+    apyBase: 1.07,
+    apyReward: 0,
+    apyRange: { min: 0.5, max: 3 },
+    tvlUsd: 104309,
+    tvl7dChange: 0,
+    tvl30dChange: 0,
+    reviewedAt: "2026-09-17",
+  },
+  {
+    // ALEX pool 13 (STX/ALEX): 7-day trading-fee APR 4.36%, holding 535,133
+    // STX + 43,164,575 ALEX ≈ $273,000. The previous 45% was attributed almost
+    // entirely to emissions (40 of 45 points); no active emissions program is
+    // evidenced on this pool, so that component is dropped rather than carried
+    // forward unverified. Understating a fee yield a reader can check beats
+    // publishing an incentive rate nobody can.
     protocolId: "alex-stx-farm",
-    apy: 45,
-    apyBase: 5,
-    apyReward: 40,
-    apyRange: { min: 20, max: 60 },
-    tvlUsd: 9000000,
-    tvl7dChange: -1.2,
-    tvl30dChange: 2.1,
-    reviewedAt: "2026-08-21",
+    apy: 4.36,
+    apyBase: 4.36,
+    apyReward: 0,
+    apyRange: { min: 1, max: 20 },
+    tvlUsd: 273000,
+    tvl7dChange: 0,
+    tvl30dChange: 0,
+    reviewedAt: "2026-09-17",
   },
   {
+    // TVL verified against DefiLlama ($1.02M). APY NOT VERIFIED: Arkadiko's
+    // public API returns swap-pool balances only, and this row is DIKO
+    // staking, which it does not cover. 11.2% is an unchecked carry-over.
     protocolId: "arkadiko-diko",
     apy: 11.2,
     apyBase: 11.2,
     apyReward: 0,
-    apyRange: { min: 8, max: 15 },
-    tvlUsd: 3000000,
+    apyRange: { min: 2, max: 15 },
+    tvlUsd: 1000000,
     tvl7dChange: 0.5,
     tvl30dChange: -2.1,
-    reviewedAt: "2026-08-21",
+    reviewedAt: "2026-09-17",
   },
 ];

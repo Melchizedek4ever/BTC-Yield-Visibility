@@ -85,8 +85,11 @@ describe('pipeline assembly', () => {
 
   test('an unreachable enrichment source leaves rows on seed values, flagged estimated', () => {
     const zest = opportunities.find(o => o.id === 'zest-btc-supply')!;
-    expect(zest.apy).toBe(3.5); // curated seed APY, untouched
-    expect(zest.tvlUsd).toBe(75_900_000);
+    // Stated against the row's own carried baseline rather than today's
+    // literals: the claim is that nothing overwrote the seed, and that stays
+    // true when a figure is re-reviewed.
+    expect(zest.apy).toBe(zest.baseline.apy);
+    expect(zest.tvlUsd).toBe(zest.baseline.tvlUsd);
     expect(zest.scoresEstimated).toBe(true);
     expect(zest.isStale).toBe(false);
   });
@@ -108,7 +111,7 @@ describe('pipeline assembly', () => {
 describe('risk decomposition (worked example: Zest — BTC Supply)', () => {
   // Hand-computed from the seed record, independent of the engine's arithmetic:
   //   smart contract  "Low" base 3, audited      → 3
-  //   liquidity       $75.9M TVL (>= $50M band)  → 3
+  //   liquidity       $50.6M TVL (>= $50M band)  → 3
   //   protocol age    20 months (>= 12 band)     → 4.5
   //   sustainability  0% of APY from emissions   → 1
   const zest = () => opportunities.find(o => o.id === 'zest-btc-supply')!.risk;
@@ -122,7 +125,7 @@ describe('risk decomposition (worked example: Zest — BTC Supply)', () => {
 
   test('gives each factor a human-readable rationale', () => {
     expect(zest().smartContractRisk.rationale).toBe('Low contract complexity; audited (Clarity Alliance).');
-    expect(zest().liquidityRisk.rationale).toBe('$76M TVL — deep liquidity.');
+    expect(zest().liquidityRisk.rationale).toBe('$51M TVL — deep liquidity.');
     expect(zest().protocolAgeRisk.rationale).toBe('20 months live.');
     expect(zest().yieldSustainabilityRisk.rationale).toBe('0% of APY from token emissions.');
   });
@@ -153,11 +156,23 @@ describe('dashboard stats', () => {
   });
 
   test('reports best and safest APY across live rows only', () => {
-    expect(stats.bestApy).toBe(45); // alex-stx-farm
-    // Only native-stacking now scores at or below 3. Under the curated scores
-    // dual-stacking also qualified at 2.2; computed, its six-month track
-    // record lifts it to 3.2 and it leaves the band.
-    expect(stats.safestApy).toBe(9.2); // native-stacking
+    const live = opportunities.filter(o => o.status !== 'coming-soon');
+    const comingSoon = opportunities.filter(o => o.status === 'coming-soon');
+
+    // Stated as the properties that define these stats — that the headline is
+    // a real row's APY, that no live row beats it, and that coming-soon rows
+    // are excluded however attractive their launch target. Pinning whichever
+    // row tops the dataset would break on every baseline review without any
+    // behaviour changing.
+    expect(live.map(o => o.apy)).toContain(stats.bestApy);
+    for (const o of live) expect(o.apy).toBeLessThanOrEqual(stats.bestApy);
+    for (const o of comingSoon) expect(stats.bestApy).not.toBe(o.apy);
+
+    const safe = live.filter(o => o.risk.overallScore <= 3);
+    expect(safe.map(o => o.apy)).toContain(stats.safestApy);
+    for (const o of safe) expect(o.apy).toBeLessThanOrEqual(stats.safestApy);
+    // The safest band is a subset, so it can never out-yield the whole set.
+    expect(stats.safestApy).toBeLessThanOrEqual(stats.bestApy);
   });
 
   test('counts live, upcoming, and estimated rows', () => {
@@ -172,7 +187,7 @@ describe('legacy dashboard facade', () => {
     const zest = protocols.find(p => p.id === 'zest-btc-supply')!;
     expect(zest.name).toBe('Zest — BTC Supply');
     expect(zest.riskScore).toBe(3.2);
-    expect(zest.apy).toBe(3.5);
+    expect(zest.apy).toBe(opportunities.find(o => o.id === 'zest-btc-supply')!.apy);
     expect(zest.riskFactors?.map(f => f.key)).toEqual([
       'smartContract',
       'liquidity',
