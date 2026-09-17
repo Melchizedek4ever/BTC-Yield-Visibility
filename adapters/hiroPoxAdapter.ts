@@ -20,7 +20,10 @@ import type { EnrichmentAdapter, NormalizedOpportunity, AdapterMetadata } from '
 
 const POX_URL = 'https://api.hiro.so/v2/pox';
 const PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=blockstack&vs_currencies=usd';
-const TIMEOUT_MS = 6_000;
+// Measured at ~11s for /v2/pox and ~9s for the price lookup. Both are public
+// endpoints with no SLA, and the previous 6s budget rejected every healthy
+// response — a timeout that never succeeds is worse than no adapter at all.
+const TIMEOUT_MS = 15_000;
 
 const MICRO_STX = 1e6;
 

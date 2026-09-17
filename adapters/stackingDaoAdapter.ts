@@ -32,7 +32,9 @@ import type { EnrichmentAdapter, NormalizedOpportunity, AdapterMetadata } from '
  */
 
 const STATS_URL = 'https://app.stackingdao.com/api/stats';
-const TIMEOUT_MS = 6_000;
+// Measured at ~4s, but it sits behind the app's edge network and spikes past
+// 6s under load. Budgeted for the spike rather than the median.
+const TIMEOUT_MS = 12_000;
 
 /**
  * Maps a registry marker to the field on the response. Named keys rather than

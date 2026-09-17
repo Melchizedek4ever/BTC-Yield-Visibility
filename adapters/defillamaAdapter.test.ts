@@ -230,6 +230,38 @@ describe('anomaly rejection and stale fallback', () => {
   });
 });
 
+/**
+ * The curated apyRange is a human guess and ranks BELOW live data in the trust
+ * hierarchy, so it must not be the yardstick a live reading is judged against
+ * whenever the pool has a history of its own.
+ *
+ * Caught in production: Zest's pool reported 0.12% against a 30-day mean of
+ * 0.001% — a reading well above its own history, rejected anyway because it
+ * sat below a fifth of the curated range's midpoint.
+ */
+describe('anomaly reference', () => {
+  test("accepts a low reading its own 30-day mean supports", async () => {
+    servePools([{ pool: 'p-low-corroborated', apy: 0.12, tvlUsd: 50e6, apyMean30d: 0.00101 }]);
+    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-low-corroborated')]);
+    expect(o.apy).toBe(0.12);
+    expect(o.scoresEstimated).toBe(false);
+  });
+
+  test("rejects a reading that collapses against its own 30-day mean", async () => {
+    servePools([{ pool: 'p-collapsed', apy: 0.4, tvlUsd: 50e6, apyMean30d: 6 }]);
+    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-collapsed')]);
+    expect(o.apy).toBe(6); // the seed baseline
+    expect(o.scoresEstimated).toBe(true);
+  });
+
+  test('falls back to the curated range when the pool has no history', async () => {
+    servePools([{ pool: 'p-no-history', apy: 0.4, tvlUsd: 50e6, apyMean30d: null }]);
+    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-no-history')]);
+    expect(o.apy).toBe(6);
+    expect(o.scoresEstimated).toBe(true);
+  });
+});
+
 describe('chain TVL', () => {
   test('returns the most recent TVL reading', async () => {
     server.use(

@@ -53,38 +53,41 @@ const lastKnownGood: Record<string, number> = {};
  */
 const NEGLIGIBLE_APY = 0.05;
 
-/**
- * A live reading far below the opportunity's curated range is treated as an
- * upstream data error rather than a real market move (the anomaly detection
- * documented on /methodology).
- */
-function isAnomalousApy(apyRange: { min: number; max: number }, liveApy: number): boolean {
-  const baseline = (apyRange.min + apyRange.max) / 2;
-  return liveApy < baseline * 0.2;
-}
+/** A reading this far below its reference is treated as an upstream error. */
+const ANOMALY_FLOOR = 0.2;
 
 /**
  * Decides what APY, if any, to take from a reading. Returns null when there is
  * nothing trustworthy to publish.
  *
- * The zero case is why this function exists. Zest's sBTC pool reports 0% with
- * ~190 observations and a 30-day mean of 0.007% behind it: a well-evidenced
- * reading of nothing, which a reader deserves to see. But a pool averaging 6%
- * that suddenly reports 0 is a glitch. The pool's OWN history separates the two
- * — not our curated estimate, which is a human guess and ranks below live data
- * in the trust hierarchy.
+ * Anomaly detection needs a reference to judge a reading against, and WHICH
+ * reference is the whole question. The curated apyRange is a human guess and
+ * ranks below live data in the trust hierarchy, so judging live data by it
+ * means a stale estimate can veto the truth — which is how Zest's real 0.12%
+ * kept losing to a curated 3.5%. The pool's own 30-day mean is the better
+ * reference wherever it exists: it is the same source, measured over time.
+ *
+ * Near zero, relative thresholds stop meaning anything (everything is "80%
+ * below" a positive number), so an exact-zero reading is handled separately:
+ * publishable when the pool's own history is also negligible, rejected when it
+ * contradicts it or when nothing corroborates it at all.
  */
 function acceptApy(apyRange: { min: number; max: number }, live: LiveReading): number | null {
   const { apy, apyMean30d } = live;
   if (apy === null) return null;
 
   if (apy <= NEGLIGIBLE_APY) {
-    // Publishable only if the pool's own 30-day mean agrees it pays nothing.
     const corroborated = apyMean30d !== null && apyMean30d <= NEGLIGIBLE_APY;
     return corroborated ? apy : null;
   }
 
-  return isAnomalousApy(apyRange, apy) ? null : apy;
+  if (apyMean30d !== null && apyMean30d > 0) {
+    return apy < apyMean30d * ANOMALY_FLOOR ? null : apy;
+  }
+
+  // No history to judge against — fall back to the curated range.
+  const midpoint = (apyRange.min + apyRange.max) / 2;
+  return apy < midpoint * ANOMALY_FLOOR ? null : apy;
 }
 
 async function fetchPool(poolId: string): Promise<LiveReading | null> {

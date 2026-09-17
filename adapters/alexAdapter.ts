@@ -31,7 +31,10 @@ import type { EnrichmentAdapter, NormalizedOpportunity, AdapterMetadata } from '
  */
 
 const POOLS_URL = 'https://api.alexlab.co/v2/public/pools';
-const TIMEOUT_MS = 6_000;
+// Measured at ~9.6s for the full pool list — the endpoint returns every pool
+// on the exchange, and there is no per-pool form. Sized with headroom so a
+// normal response is not mistaken for an outage.
+const TIMEOUT_MS = 15_000;
 
 /** ALEX's on-chain fixed-point scale. See the ENCODING note above. */
 const FIXED_POINT = 1e18;

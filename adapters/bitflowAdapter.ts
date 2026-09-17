@@ -27,7 +27,9 @@ import type { EnrichmentAdapter, NormalizedOpportunity, AdapterMetadata } from '
  */
 
 const TICKER_URL = 'https://bitflow-sdk-api-gateway-7owjsmt8.uc.gateway.dev/ticker';
-const TIMEOUT_MS = 6_000;
+// Measured at 5.5-6s: the ticker returns every pool on the DEX and there is
+// no per-pool form, so the previous 6s budget cut off a healthy response.
+const TIMEOUT_MS = 12_000;
 
 interface TickerRow {
   pool_id?: unknown;
