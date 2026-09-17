@@ -2,6 +2,7 @@ import { seedAdapter } from '@/adapters/seedAdapter';
 import { alexAdapter } from '@/adapters/alexAdapter';
 import { defillamaAdapter, fetchStacksChainTvl } from '@/adapters/defillamaAdapter';
 import { velarAdapter } from '@/adapters/velarAdapter';
+import { bitflowAdapter } from '@/adapters/bitflowAdapter';
 import { hiroPoxAdapter } from '@/adapters/hiroPoxAdapter';
 import { stackingDaoAdapter } from '@/adapters/stackingDaoAdapter';
 import { assessRisk } from '@/lib/riskEngine';
@@ -43,7 +44,14 @@ export const defaultDeps: YieldServiceDeps = {
   // third-party baseline; protocol-native sources like Velar override it for
   // pools both cover; chain state last, since a figure read straight off the
   // chain beats anyone's reporting of it.
-  enrichmentAdapters: [defillamaAdapter, alexAdapter, velarAdapter, stackingDaoAdapter, hiroPoxAdapter],
+  enrichmentAdapters: [
+    defillamaAdapter,
+    alexAdapter,
+    bitflowAdapter,
+    velarAdapter,
+    stackingDaoAdapter,
+    hiroPoxAdapter,
+  ],
   chainTvlSource: fetchStacksChainTvl,
   now: Date.now,
   cacheTtlMs: 60_000,

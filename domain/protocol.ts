@@ -39,5 +39,7 @@ export interface Protocol {
     stackingDaoApyKey?: string;
     /** Numeric pool id on ALEX's AMM. See alexAdapter. */
     alexPoolId?: number;
+    /** Pool contract address on Bitflow's DEX. See bitflowAdapter. */
+    bitflowPool?: string;
   };
 }

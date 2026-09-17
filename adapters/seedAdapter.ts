@@ -46,6 +46,7 @@ function toProtocol(r: ProtocolRecord): Protocol {
       stacksPox: r.externalIds.stacksPox,
       stackingDaoApyKey: r.externalIds.stackingDaoApyKey,
       alexPoolId: r.externalIds.alexPoolId,
+      bitflowPool: r.externalIds.bitflowPool,
     },
   };
 }

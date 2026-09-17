@@ -66,6 +66,8 @@ export interface ProtocolRecord {
     stackingDaoApyKey?: string;
     /** Numeric pool id on ALEX's AMM, for realized trading-fee APR. */
     alexPoolId?: number;
+    /** Pool contract address on Bitflow's DEX, for USD liquidity. */
+    bitflowPool?: string;
   };
 }
 
@@ -311,6 +313,7 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     status: "live",
     externalIds: {
       defiLlamaProject: "bitflow",
+      bitflowPool: "SM1793C4R5PZ4NS4VQ4WMP7SKKYVH8JZEWSZ9HCCR.xyk-pool-sbtc-stx-v-1-1",
     },
   },
   {
