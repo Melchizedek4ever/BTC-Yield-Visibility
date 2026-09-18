@@ -13,7 +13,7 @@ import { describeAdapterContract } from '@/test/adapterContract';
  * every test uses its own unique pool id to stay isolated at the public seam.
  */
 
-const POOLS_URL = 'https://yields.llama.fi/pools';
+const POOLS_URL = 'https://yields.llama.fi/poolsEnriched';
 const CHAIN_TVL_URL = 'https://api.llama.fi/v2/historicalChainTvl/Stacks';
 
 const server = setupServer();
@@ -34,8 +34,31 @@ function makePooledOpportunity(poolId: string) {
   });
 }
 
-function servePools(pools: Array<{ pool: string; apy: number; tvlUsd: number }>) {
-  server.use(http.get(POOLS_URL, () => HttpResponse.json({ data: pools })));
+/**
+ * Stands in for the per-pool endpoint: it answers for the single pool id in
+ * the query string, so a test that serves nothing for an id reproduces a real
+ * unmatched pool rather than an empty whole-list response.
+ *
+ * `apy`/`tvlUsd` are nullable because DefiLlama genuinely returns null for
+ * "no reading" and 0 for "this pool pays nothing" — the distinction this
+ * adapter exists to preserve. `apyMean30d` is the pool's own 30-day average,
+ * which is what corroborates a zero reading.
+ */
+interface ServedPool {
+  pool: string;
+  apy: number | null;
+  tvlUsd: number | null;
+  apyMean30d?: number | null;
+}
+
+function servePools(pools: ServedPool[]) {
+  server.use(
+    http.get(POOLS_URL, ({ request }) => {
+      const wanted = new URL(request.url).searchParams.get('pool');
+      const match = pools.filter(p => p.pool === wanted);
+      return HttpResponse.json({ status: 'success', data: match });
+    }),
+  );
 }
 
 describe('enrichment with live data', () => {
@@ -81,11 +104,94 @@ describe('failure modes', () => {
     expect(o.scoresEstimated).toBe(true);
   });
 
-  test('zero live APY is treated as missing, not applied', async () => {
-    servePools([{ pool: 'p-zero', apy: 0, tvlUsd: 42e6 }]);
-    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-zero')]);
+  test('a null TVL keeps the seed TVL rather than publishing $0', async () => {
+    servePools([{ pool: 'p-null-tvl', apy: 5, tvlUsd: null }]);
+    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-null-tvl')]);
+    expect(o.apy).toBe(5);
+    expect(o.tvlUsd).toBe(30e6); // the seed value, not 0
+  });
+
+  test('a null APY is a missing reading — keeps the seed estimate', async () => {
+    servePools([{ pool: 'p-null-apy', apy: null, tvlUsd: 42e6 }]);
+    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-null-apy')]);
+    expect(o.apy).toBe(6);
+    expect(o.tvlUsd).toBe(42e6); // a missing APY says nothing about the TVL
+    expect(o.scoresEstimated).toBe(true);
+  });
+});
+
+/**
+ * The Zest case, and the reason this adapter was changed: DefiLlama reported
+ * 0% for Zest's sBTC pool with 192 observations behind it, and the dashboard
+ * showed a curated 3.5% instead. A pool that pays nothing is a finding a
+ * reader deserves, not an error to be papered over.
+ */
+describe('a genuine zero reading', () => {
+  test("publishes 0% when the pool's own 30-day mean confirms it", async () => {
+    servePools([{ pool: 'p-true-zero', apy: 0, tvlUsd: 50e6, apyMean30d: 0.00687 }]);
+    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-true-zero')]);
+    expect(o.apy).toBe(0);
+    expect(o.tvlUsd).toBe(50e6);
+    expect(o.isStale).toBe(false);
+    expect(o.scoresEstimated).toBe(false);
+  });
+
+  test("rejects a zero that contradicts the pool's own history", async () => {
+    // A pool averaging 6% that suddenly reads 0 is a data error, not a rate cut.
+    servePools([{ pool: 'p-suspect-zero', apy: 0, tvlUsd: 50e6, apyMean30d: 6 }]);
+    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-suspect-zero')]);
+    expect(o.apy).toBe(6); // the seed baseline
+    expect(o.scoresEstimated).toBe(true);
+  });
+
+  test('rejects a zero with no history to corroborate it', async () => {
+    servePools([{ pool: 'p-bare-zero', apy: 0, tvlUsd: 50e6, apyMean30d: null }]);
+    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-bare-zero')]);
     expect(o.apy).toBe(6);
     expect(o.scoresEstimated).toBe(true);
+  });
+});
+
+describe('per-pool request isolation', () => {
+  test('one failing pool does not cost the others their live reading', async () => {
+    // The whole-list fetch this replaced was all-or-nothing: a single bad
+    // upstream response dropped every row back to seed estimates at once.
+    server.use(
+      http.get(POOLS_URL, ({ request }) => {
+        const wanted = new URL(request.url).searchParams.get('pool');
+        if (wanted === 'p-broken') return new HttpResponse(null, { status: 500 });
+        return HttpResponse.json({ status: 'success', data: [{ pool: wanted, apy: 6, tvlUsd: 40e6 }] });
+      }),
+    );
+
+    const [broken, healthy] = await defillamaAdapter.enrich([
+      makePooledOpportunity('p-broken'),
+      makePooledOpportunity('p-healthy'),
+    ]);
+
+    expect(broken.scoresEstimated).toBe(true); // fell back to its seed baseline
+    expect(healthy.apy).toBe(6); // unaffected by its neighbour
+    expect(healthy.scoresEstimated).toBe(false);
+  });
+
+  test('asks only for the pools it maps, one request each', async () => {
+    const requested: string[] = [];
+    server.use(
+      http.get(POOLS_URL, ({ request }) => {
+        const wanted = new URL(request.url).searchParams.get('pool');
+        requested.push(wanted ?? '(unfiltered)');
+        return HttpResponse.json({ status: 'success', data: [] });
+      }),
+    );
+
+    await defillamaAdapter.enrich([
+      makePooledOpportunity('p-one'),
+      makePooledOpportunity('p-two'),
+      { ...makePooledOpportunity('p-soon-2'), status: 'coming-soon' as const },
+    ]);
+
+    // Never an unfiltered call: that is the 11MB whole-list download.
+    expect(requested.sort()).toEqual(['p-one', 'p-two']);
   });
 });
 
@@ -100,7 +206,8 @@ describe('anomaly rejection and stale fallback', () => {
     servePools([{ pool: 'p-anomaly', apy: 0.4, tvlUsd: 41e6 }]);
     const [o] = await defillamaAdapter.enrich([opp]);
     expect(o.apy).toBe(5.5);
-    expect(o.tvlUsd).toBe(40e6);
+    // TVL is its own reading: rejecting the APY must not discard it.
+    expect(o.tvlUsd).toBe(41e6);
     expect(o.isStale).toBe(true);
     expect(o.scoresEstimated).toBe(false);
   });
@@ -109,6 +216,7 @@ describe('anomaly rejection and stale fallback', () => {
     servePools([{ pool: 'p-anomaly-cold', apy: 0.4, tvlUsd: 41e6 }]);
     const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-anomaly-cold')]);
     expect(o.apy).toBe(6);
+    expect(o.tvlUsd).toBe(41e6); // the TVL reading was never in doubt
     expect(o.isStale).toBe(false);
     expect(o.scoresEstimated).toBe(true);
   });
@@ -119,6 +227,38 @@ describe('anomaly rejection and stale fallback', () => {
     const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-low-real')]);
     expect(o.apy).toBe(1.5);
     expect(o.isStale).toBe(false);
+  });
+});
+
+/**
+ * The curated apyRange is a human guess and ranks BELOW live data in the trust
+ * hierarchy, so it must not be the yardstick a live reading is judged against
+ * whenever the pool has a history of its own.
+ *
+ * Caught in production: Zest's pool reported 0.12% against a 30-day mean of
+ * 0.001% — a reading well above its own history, rejected anyway because it
+ * sat below a fifth of the curated range's midpoint.
+ */
+describe('anomaly reference', () => {
+  test("accepts a low reading its own 30-day mean supports", async () => {
+    servePools([{ pool: 'p-low-corroborated', apy: 0.12, tvlUsd: 50e6, apyMean30d: 0.00101 }]);
+    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-low-corroborated')]);
+    expect(o.apy).toBe(0.12);
+    expect(o.scoresEstimated).toBe(false);
+  });
+
+  test("rejects a reading that collapses against its own 30-day mean", async () => {
+    servePools([{ pool: 'p-collapsed', apy: 0.4, tvlUsd: 50e6, apyMean30d: 6 }]);
+    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-collapsed')]);
+    expect(o.apy).toBe(6); // the seed baseline
+    expect(o.scoresEstimated).toBe(true);
+  });
+
+  test('falls back to the curated range when the pool has no history', async () => {
+    servePools([{ pool: 'p-no-history', apy: 0.4, tvlUsd: 50e6, apyMean30d: null }]);
+    const [o] = await defillamaAdapter.enrich([makePooledOpportunity('p-no-history')]);
+    expect(o.apy).toBe(6);
+    expect(o.scoresEstimated).toBe(true);
   });
 });
 

@@ -46,8 +46,9 @@ describe('score components', () => {
 
 describe('final score normalization', () => {
   test('with two live opportunities, best raw maps to 10 and worst to 1', () => {
-    const strong = makeOpportunity({ id: 'strong', apy: 8, apyBase: 8, apyReward: 0, seedRiskScore: 2 });
-    const weak = makeOpportunity({ id: 'weak', apy: 8, apyBase: 1, apyReward: 7, seedRiskScore: 8 });
+    // Same headline APY; the difference is organic yield versus emissions.
+    const strong = makeOpportunity({ id: 'strong', apy: 8, apyBase: 8, apyReward: 0 });
+    const weak = makeOpportunity({ id: 'weak', apy: 8, apyBase: 1, apyReward: 7 });
     const scores = score([strong, weak]);
     expect(scores.get('strong')!.finalScore).toBe(10);
     expect(scores.get('weak')!.finalScore).toBe(1);
@@ -95,7 +96,6 @@ const liveOpportunityArb = fc
       apyReward: r.apy * r.rewardShare,
       tvlUsd: r.tvlUsd,
       healthScore: r.healthScore,
-      seedRiskScore: r.seedRiskScore,
     })
   );
 

@@ -56,3 +56,37 @@ protocols with no public API (see 30-alex.md, 33-zest-protocol.md,
 Build the shared Hiro contract-call client first — every other "no public
 API" protocol profile in this index depends on it. This is the single
 highest-leverage integration: one client, many protocols unlocked.
+
+## Implementation status (2026-09-15)
+
+`adapters/hiroPoxAdapter.ts` is live. It reads `GET /v2/pox` and sets the TVL
+of the row marked `externalIds.stacksPox` from
+`current_cycle.stacked_ustx`, priced in USD via CoinGecko.
+
+Measured against the curated baseline on first run: **$200,000,000 estimated
+vs $114.7M actual** — the largest single error in the dataset. The baseline
+has been corrected to $115M.
+
+### Why it sets TVL and not APY
+
+Stacking APY has to be derived from burnchain reward payouts
+(`/extended/v1/burnchain/rewards`), and a sample of 384 rows across 568 burn
+blocks returned **`reward_index: 0` for every single row**. PoX allocates
+multiple reward slots per cycle, so either there is genuinely one recipient per
+block, or the feed omits the others. If it omits them, a derived APY is
+understated twofold.
+
+The derivation produced 7.80% against a curated 9.2%, which is plausible — and
+that is exactly the problem: a number that looks reasonable while resting on an
+unverified assumption. `stacked_ustx` is a single authoritative field needing no
+inference, so that is all the adapter claims.
+
+To finish the APY, first establish whether the reward feed is complete —
+cross-check total payouts for one full cycle against a block explorer.
+
+### Known constraint
+
+The CoinGecko free tier rate-limits aggressively; it returned a failure during
+development and the adapter correctly fell back to the curated baseline. With
+the service's 60s cache this is roughly one call per minute, but a price source
+with a firmer quota should be considered before more adapters depend on it.

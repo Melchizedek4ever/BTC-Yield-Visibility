@@ -30,5 +30,16 @@ export interface Protocol {
     defiLlamaPool?: string;
     /** LP token contract address on Velar's DEX. */
     velarPool?: string;
+    /** True for the row representing the whole PoX stacking pool. */
+    stacksPox?: boolean;
+    /**
+     * Which realized rate to take from StackingDAO's stats endpoint:
+     * 'native' | 'ststx' | 'ststxbtc' | 'stbtc'. See stackingDaoAdapter.
+     */
+    stackingDaoApyKey?: string;
+    /** Numeric pool id on ALEX's AMM. See alexAdapter. */
+    alexPoolId?: number;
+    /** Pool contract address on Bitflow's DEX. See bitflowAdapter. */
+    bitflowPool?: string;
   };
 }

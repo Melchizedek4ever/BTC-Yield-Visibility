@@ -1,3 +1,13 @@
+/**
+ * The flat, UI-shaped view of an opportunity — what the current dashboard
+ * components read. It is a projection of the domain model (domain/*), produced
+ * by the legacy façade in services/yieldService.ts, and deliberately lossy.
+ *
+ * The canonical model is YieldOpportunity. These types exist so the frontend
+ * could stay untouched through the domain refactor; as components migrate to
+ * consume YieldOpportunity directly, this file shrinks.
+ */
+
 export interface RiskFactorView {
   key: 'smartContract' | 'liquidity' | 'protocolAge' | 'yieldSustainability' | 'impermanentLoss' | 'rewardQuality' | 'counterparty';
   label: string;

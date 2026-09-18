@@ -17,21 +17,23 @@ import type { GlobalStats, YieldProtocol } from '@/lib/types';
  * engine, and scoring engine all run for real.
  *
  * Scenario: every upstream source unavailable, so the pipeline falls back to
- * curated seed values throughout. That makes the run fully deterministic and
- * exercises the failure paths the dashboard depends on most.
+ * the curated market baseline throughout. That makes the run fully
+ * deterministic and exercises the failure paths the dashboard depends on most.
  *
- * Note the shape of this file: the service caches in module-global state with
- * no reset, so the whole suite can only observe ONE assembled result. That
- * limitation is the reason for the DI refactor these tests are protecting.
+ * The suite observes a single assembled result from the default service
+ * instance, which is why it reads as one snapshot. Tests needing more than one
+ * scenario build their own instance through createYieldService() below.
  */
 
-const POOLS_URL = 'https://yields.llama.fi/pools';
+const POOLS_URL = 'https://yields.llama.fi/poolsEnriched';
 const CHAIN_TVL_URL = 'https://api.llama.fi/v2/historicalChainTvl/Stacks';
 
 const server = setupServer(
-  http.get(POOLS_URL, () => HttpResponse.json({ data: [] })),
+  http.get(POOLS_URL, () => HttpResponse.json({ status: 'success', data: [] })),
   http.get(CHAIN_TVL_URL, () => HttpResponse.json([])),
   http.get('https://api.velar.co/pools/:lpToken', () => new HttpResponse(null, { status: 404 })),
+  http.get('https://api.hiro.so/v2/pox', () => new HttpResponse(null, { status: 503 })),
+  http.get('https://api.coingecko.com/api/v3/simple/price', () => new HttpResponse(null, { status: 503 })),
 );
 
 let opportunities: YieldOpportunity[];
@@ -83,8 +85,11 @@ describe('pipeline assembly', () => {
 
   test('an unreachable enrichment source leaves rows on seed values, flagged estimated', () => {
     const zest = opportunities.find(o => o.id === 'zest-btc-supply')!;
-    expect(zest.apy).toBe(3.5); // curated seed APY, untouched
-    expect(zest.tvlUsd).toBe(75_900_000);
+    // Stated against the row's own carried baseline rather than today's
+    // literals: the claim is that nothing overwrote the seed, and that stays
+    // true when a figure is re-reviewed.
+    expect(zest.apy).toBe(zest.baseline.apy);
+    expect(zest.tvlUsd).toBe(zest.baseline.tvlUsd);
     expect(zest.scoresEstimated).toBe(true);
     expect(zest.isStale).toBe(false);
   });
@@ -106,7 +111,7 @@ describe('pipeline assembly', () => {
 describe('risk decomposition (worked example: Zest — BTC Supply)', () => {
   // Hand-computed from the seed record, independent of the engine's arithmetic:
   //   smart contract  "Low" base 3, audited      → 3
-  //   liquidity       $75.9M TVL (>= $50M band)  → 3
+  //   liquidity       $50.6M TVL (>= $50M band)  → 3
   //   protocol age    20 months (>= 12 band)     → 4.5
   //   sustainability  0% of APY from emissions   → 1
   const zest = () => opportunities.find(o => o.id === 'zest-btc-supply')!.risk;
@@ -120,7 +125,7 @@ describe('risk decomposition (worked example: Zest — BTC Supply)', () => {
 
   test('gives each factor a human-readable rationale', () => {
     expect(zest().smartContractRisk.rationale).toBe('Low contract complexity; audited (Clarity Alliance).');
-    expect(zest().liquidityRisk.rationale).toBe('$76M TVL — deep liquidity.');
+    expect(zest().liquidityRisk.rationale).toBe('$51M TVL — deep liquidity.');
     expect(zest().protocolAgeRisk.rationale).toBe('20 months live.');
     expect(zest().yieldSustainabilityRisk.rationale).toBe('0% of APY from token emissions.');
   });
@@ -141,17 +146,33 @@ describe('risk decomposition (worked example: Zest — BTC Supply)', () => {
 });
 
 describe('dashboard stats', () => {
-  test('falls back to summed opportunity TVL when chain TVL is unavailable', () => {
-    // Sum of the 11 live seed TVLs; coming-soon is excluded.
-    expect(stats.totalTvl).toBe(495_986_516);
+  test('reports chain TVL as unavailable rather than substituting a different measure', () => {
+    // The stat is labelled "Stacks DeFi TVL" and means DefiLlama's chain-wide
+    // figure. Summing our tracked rows answers a different question — these
+    // rows include consensus-level stacking that chain DeFi TVL excludes — so
+    // standing one in for the other would publish a number under a label it
+    // does not belong to. 0 reads as unavailable.
+    expect(stats.totalTvl).toBe(0);
   });
 
   test('reports best and safest APY across live rows only', () => {
-    expect(stats.bestApy).toBe(45); // alex-stx-farm
-    // Only native-stacking now scores at or below 3. Under the curated scores
-    // dual-stacking also qualified at 2.2; computed, its six-month track
-    // record lifts it to 3.2 and it leaves the band.
-    expect(stats.safestApy).toBe(9.2); // native-stacking
+    const live = opportunities.filter(o => o.status !== 'coming-soon');
+    const comingSoon = opportunities.filter(o => o.status === 'coming-soon');
+
+    // Stated as the properties that define these stats — that the headline is
+    // a real row's APY, that no live row beats it, and that coming-soon rows
+    // are excluded however attractive their launch target. Pinning whichever
+    // row tops the dataset would break on every baseline review without any
+    // behaviour changing.
+    expect(live.map(o => o.apy)).toContain(stats.bestApy);
+    for (const o of live) expect(o.apy).toBeLessThanOrEqual(stats.bestApy);
+    for (const o of comingSoon) expect(stats.bestApy).not.toBe(o.apy);
+
+    const safe = live.filter(o => o.risk.overallScore <= 3);
+    expect(safe.map(o => o.apy)).toContain(stats.safestApy);
+    for (const o of safe) expect(o.apy).toBeLessThanOrEqual(stats.safestApy);
+    // The safest band is a subset, so it can never out-yield the whole set.
+    expect(stats.safestApy).toBeLessThanOrEqual(stats.bestApy);
   });
 
   test('counts live, upcoming, and estimated rows', () => {
@@ -166,7 +187,7 @@ describe('legacy dashboard facade', () => {
     const zest = protocols.find(p => p.id === 'zest-btc-supply')!;
     expect(zest.name).toBe('Zest — BTC Supply');
     expect(zest.riskScore).toBe(3.2);
-    expect(zest.apy).toBe(3.5);
+    expect(zest.apy).toBe(opportunities.find(o => o.id === 'zest-btc-supply')!.apy);
     expect(zest.riskFactors?.map(f => f.key)).toEqual([
       'smartContract',
       'liquidity',
@@ -337,7 +358,7 @@ describe('enrichment adapter failure isolation', () => {
 });
 
 describe('chain TVL source failure', () => {
-  test('falls back to summed opportunity TVL when the source throws', async () => {
+  test('reports 0 rather than a substitute measure when the source throws', async () => {
     const svc = createYieldService({
       originAdapters: [
         originStub([
@@ -353,7 +374,35 @@ describe('chain TVL source failure', () => {
 
     const { stats: s } = await svc.getDashboard();
 
-    expect(s.totalTvl).toBe(8_000_000);
+    expect(s.totalTvl).toBe(0);
+  });
+});
+
+describe('curated baseline survives enrichment', () => {
+  test('a live reading overwrites the headline figures but not the baseline', async () => {
+    // This is what lets the UI show "live 0.8% / estimate 3.5%" rather than
+    // silently replacing one with the other. If enrichment overwrote the
+    // baseline, the two could never be compared and a wrong estimate would
+    // disappear the moment real data arrived.
+    const svc = createYieldService({
+      originAdapters: [
+        originStub([
+          makeOpportunity({
+            id: 'enriched',
+            apy: 3.5,
+            tvlUsd: 75_900_000,
+            baseline: { apy: 3.5, tvlUsd: 75_900_000, reviewedAt: '2026-08-21' },
+          }),
+        ]),
+      ],
+      enrichmentAdapters: [apyStamper('live-source', 0.8)],
+      chainTvlSource: noChainTvl,
+    });
+
+    const [o] = await svc.getOpportunities();
+
+    expect(o.apy).toBe(0.8); // the live reading wins the headline
+    expect(o.baseline).toEqual({ apy: 3.5, tvlUsd: 75_900_000, reviewedAt: '2026-08-21' });
   });
 });
 

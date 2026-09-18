@@ -13,7 +13,8 @@ import type { EnrichmentAdapter, NormalizedOpportunity, AdapterMetadata } from '
  * add that guard if Velar's readings turn out to be noisy in practice.
  */
 
-const TIMEOUT_MS = 5_000;
+// Measured at ~4.9s, which the previous 5s budget cut off almost every time.
+const TIMEOUT_MS = 10_000;
 
 interface VelarPool { stats?: { apy?: number | string; tvl_usd?: { value?: number } } }
 

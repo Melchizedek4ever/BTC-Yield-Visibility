@@ -39,6 +39,7 @@ const REQUIRED_FIELDS = [
   'tvlUsd',
   'tvl7dChange',
   'tvl30dChange',
+  'baseline',
   'lockup',
   'ilRisk',
   'minimumDeposit',

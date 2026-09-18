@@ -26,6 +26,12 @@ export interface YieldOpportunity {
   tvlUsd: number;
   tvl7dChange: number;
   tvl30dChange: number;
+  /**
+   * The curated estimate this row started from, kept even when a live reading
+   * replaced the figures above, so a consumer can show both and judge whether
+   * the estimate still holds. `reviewedAt` dates the estimate, not the reading.
+   */
+  baseline: { apy: number; tvlUsd: number; reviewedAt: string };
 
   lockup: string;
   ilRisk: IlRisk;

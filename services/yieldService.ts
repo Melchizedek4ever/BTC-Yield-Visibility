@@ -2,6 +2,9 @@ import { seedAdapter } from '@/adapters/seedAdapter';
 import { alexAdapter } from '@/adapters/alexAdapter';
 import { defillamaAdapter, fetchStacksChainTvl } from '@/adapters/defillamaAdapter';
 import { velarAdapter } from '@/adapters/velarAdapter';
+import { bitflowAdapter } from '@/adapters/bitflowAdapter';
+import { hiroPoxAdapter } from '@/adapters/hiroPoxAdapter';
+import { stackingDaoAdapter } from '@/adapters/stackingDaoAdapter';
 import { assessRisk } from '@/lib/riskEngine';
 import { buildScores } from '@/lib/scoringEngine';
 import type { NormalizedOpportunity, ProtocolAdapter, EnrichmentAdapter } from '@/adapters/types';
@@ -35,12 +38,20 @@ export interface YieldServiceDeps {
 
 export const defaultDeps: YieldServiceDeps = {
   // Register data sources here. Adding a protocol = add its adapter to this list.
-  originAdapters: [seedAdapter, alexAdapter],
-  // Order matters: each enricher overlays the previous one's output. DefiLlama
-  // runs first as the broad-coverage baseline; protocol-native sources like
-  // Velar run after, so a first-party reading wins over DefiLlama's for any
-  // opportunity both happen to cover.
-  enrichmentAdapters: [defillamaAdapter, velarAdapter],
+  originAdapters: [seedAdapter],
+  // Order matters: each enricher overlays the previous one's output, so the
+  // list runs from least to most authoritative. DefiLlama is the broad
+  // third-party baseline; protocol-native sources like Velar override it for
+  // pools both cover; chain state last, since a figure read straight off the
+  // chain beats anyone's reporting of it.
+  enrichmentAdapters: [
+    defillamaAdapter,
+    alexAdapter,
+    bitflowAdapter,
+    velarAdapter,
+    stackingDaoAdapter,
+    hiroPoxAdapter,
+  ],
   chainTvlSource: fetchStacksChainTvl,
   now: Date.now,
   cacheTtlMs: 60_000,
@@ -66,6 +77,7 @@ function toOpportunity(
     tvlUsd: o.tvlUsd,
     tvl7dChange: o.tvl7dChange,
     tvl30dChange: o.tvl30dChange,
+    baseline: o.baseline,
     lockup: o.lockup,
     ilRisk: o.ilRisk,
     minimumDeposit: o.minimumDeposit,
@@ -146,7 +158,11 @@ function toLegacy(o: YieldOpportunity): YieldProtocol {
 function buildStats(opps: YieldOpportunity[], chainTvl: number): GlobalStats {
   const live = opps.filter(o => o.status !== 'coming-soon');
   return {
-    totalTvl: chainTvl || live.reduce((s, o) => s + o.tvlUsd, 0),
+    // DefiLlama's chain-wide DeFi TVL, reported as-is. Summing our own rows
+    // measures something else — they include consensus-level stacking that
+    // chain DeFi TVL excludes — so there is no honest fallback here: 0 means
+    // the upstream figure is unavailable, and the UI says so.
+    totalTvl: chainTvl,
     bestApy: Math.max(...live.map(o => o.apy), 0),
     safestApy: Math.max(...live.filter(o => o.risk.overallScore <= 3).map(o => o.apy), 0),
     activeSourceCount: live.length,

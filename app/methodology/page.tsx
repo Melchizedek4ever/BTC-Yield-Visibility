@@ -136,10 +136,31 @@ rawScore   = realYield × (healthScore / 10) × (0.4 + 0.6 × sustainability)
 
         <Section title="Data sourcing">
           <p>
-            Live TVL and APY are enriched from <strong>DefiLlama</strong>, matched by explicit pool ID. Where a live pool
-            isn&apos;t mapped yet, the row falls back to curated seed estimates and is flagged{' '}
+            Figures come from several sources, ranked by how far they sit from the chain. A reading taken
+            straight from Stacks chain state outranks a protocol&apos;s own API, which outranks a third-party
+            aggregator, which outranks any estimate of ours. Where two sources disagree, the one closer to the
+            chain wins.
+          </p>
+          <p className="mt-3">
+            In practice that means <strong>Hiro</strong> for Proof-of-Transfer chain state;{' '}
+            <strong>ALEX</strong>, <strong>Bitflow</strong>, <strong>Velar</strong> and{' '}
+            <strong>StackingDAO</strong> for their own pools, matched by explicit pool or contract ID; and{' '}
+            <strong>DefiLlama</strong> for pools no first-party source covers. Matching is always by identifier,
+            never by protocol name, so one pool&apos;s yield can never be attributed to another.
+          </p>
+          <p className="mt-3">
+            Each adapter publishes only what its source can support. Stacking TVL is read from chain state but
+            its APY is not, because that would have to be inferred from reward payouts. ALEX supplies realized
+            trading-fee yield but not the incentive half, which lives in a separate contract. Where a figure has
+            no live source, the row falls back to a maintained estimate and is flagged{' '}
             <span className="px-1.5 py-0.5 rounded-full text-xs" style={{ background: '#2a1a00', color: '#F59E0B', border: '1px solid #F59E0B22' }}>est.</span>
-            {' '}Figures are informational and not financial advice.
+          </p>
+          <p className="mt-3">
+            A live reading is rejected only when it collapses against the pool&apos;s own recent history &mdash;
+            not when it merely disagrees with our estimate, which would let a stale guess veto the truth. A pool
+            genuinely paying nothing is reported as <strong>0%</strong>, because a rate of zero is something a
+            reader deserves to know rather than a gap to paper over. Figures are informational and not financial
+            advice.
           </p>
         </Section>
 
