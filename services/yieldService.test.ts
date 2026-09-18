@@ -237,6 +237,39 @@ function failingOrigin(source = 'broken'): ProtocolAdapter {
   };
 }
 
+/** An enricher that returns every row untouched — the same object references. */
+function claimNothing(source: string): EnrichmentAdapter {
+  return {
+    source,
+    getMetadata: () => ({ source, description: 'claims nothing', kind: 'enrichment' }),
+    fetchOpportunities: async () => [],
+    enrich: async opps => opps,
+  };
+}
+
+/** An enricher that claims exactly one row by id and marks it live. */
+function claimOne(source: string, id: string): EnrichmentAdapter {
+  return {
+    source,
+    getMetadata: () => ({ source, description: 'claims one row', kind: 'enrichment' }),
+    fetchOpportunities: async () => [],
+    enrich: async opps =>
+      opps.map(o => (o.id === id ? { ...o, apy: 5, scoresEstimated: false } : o)),
+  };
+}
+
+/** An enricher that always throws, to exercise containment. */
+function throwingEnricher(source: string): EnrichmentAdapter {
+  return {
+    source,
+    getMetadata: () => ({ source, description: 'always throws', kind: 'enrichment' }),
+    fetchOpportunities: async () => [],
+    enrich: async () => {
+      throw new Error('upstream is down');
+    },
+  };
+}
+
 /** An enricher that stamps a fixed APY onto every row, so precedence is visible. */
 function apyStamper(source: string, apy: number): EnrichmentAdapter {
   return {
@@ -324,6 +357,218 @@ describe('strategies with no published rate', () => {
     expect(rows[0].unpublishedRate).toBeDefined();
     expect(rows[0].tvlUsd).toBe(5_600_000);
     expect(rows[0].riskFactors).toHaveLength(7);
+  });
+});
+
+/**
+ * Enrichers used to run one after another, so a refresh cost the SUM of every
+ * upstream latency — measured at 20-46s against a 60s cache, which a first-time
+ * visitor waits through. They claim disjoint sets of rows in practice, so they
+ * can run concurrently and be merged afterwards.
+ */
+describe('enrichment concurrency', () => {
+  /** An enricher that takes `ms` before stamping `apy` on every row. */
+  function slowStamper(source: string, apy: number, ms: number): EnrichmentAdapter {
+    return {
+      source,
+      getMetadata: () => ({ source, description: 'slow test enricher', kind: 'enrichment' }),
+      fetchOpportunities: async () => [],
+      enrich: async opps => {
+        await new Promise(r => setTimeout(r, ms));
+        return opps.map(o => ({ ...o, apy }));
+      },
+    };
+  }
+
+  test('runs enrichers concurrently rather than in series', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'row' })])],
+      enrichmentAdapters: [
+        slowStamper('a', 1, 120),
+        slowStamper('b', 2, 120),
+        slowStamper('c', 3, 120),
+      ],
+      chainTvlSource: noChainTvl,
+    });
+
+    const started = Date.now();
+    await svc.getOpportunities();
+    const elapsed = Date.now() - started;
+
+    // Series would be ~360ms, concurrent ~120ms. The midpoint is a generous
+    // threshold that still fails loudly if the loop goes back to awaiting each
+    // enricher in turn.
+    expect(elapsed).toBeLessThan(300);
+  });
+
+  test('a later enricher still wins a contested row', async () => {
+    // The ordering guarantee has to survive concurrency: the list still runs
+    // least to most authoritative, it just no longer runs one at a time.
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'contested', apy: 1 })])],
+      enrichmentAdapters: [slowStamper('aggregator', 5, 40), slowStamper('first-party', 9, 10)],
+      chainTvlSource: noChainTvl,
+    });
+
+    const [o] = await svc.getOpportunities();
+    // first-party finishes FIRST in wall-clock terms and must still win on
+    // list order, not on whichever upstream happened to answer soonest.
+    expect(o.apy).toBe(9);
+  });
+
+  test('leaves a row untouched when no enricher claims it', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'unclaimed', apy: 7 })])],
+      enrichmentAdapters: [claimNothing('a'), claimNothing('b')],
+      chainTvlSource: noChainTvl,
+    });
+
+    const [o] = await svc.getOpportunities();
+    expect(o.apy).toBe(7);
+    expect(o.scoresEstimated).toBeUndefined();
+  });
+
+  test('two enrichers touching different fields of one row both land', async () => {
+    // The real shape of the pipeline: StackingDAO supplies a stacking APY and
+    // Hiro supplies the same row's TVL from chain state. Running them
+    // concurrently gives each the ORIGINAL row, so a row-level "last writer
+    // wins" merge would silently discard whichever landed earlier in the list.
+    // Merging per field is what preserves both.
+    const apyOnly: EnrichmentAdapter = {
+      source: 'rate-source',
+      getMetadata: () => ({ source: 'rate-source', description: 'apy only', kind: 'enrichment' }),
+      fetchOpportunities: async () => [],
+      enrich: async opps => opps.map(o => ({ ...o, apy: 9, scoresEstimated: false })),
+    };
+    const tvlOnly: EnrichmentAdapter = {
+      source: 'size-source',
+      getMetadata: () => ({ source: 'size-source', description: 'tvl only', kind: 'enrichment' }),
+      fetchOpportunities: async () => [],
+      enrich: async opps => opps.map(o => ({ ...o, tvlUsd: 42e6, scoresEstimated: false })),
+    };
+
+    const svc = createYieldService({
+      originAdapters: [
+        originStub([makeOpportunity({ id: 'row', apy: 1, tvlUsd: 1e6, scoresEstimated: true })]),
+      ],
+      enrichmentAdapters: [apyOnly, tvlOnly],
+      chainTvlSource: noChainTvl,
+    });
+
+    const [o] = await svc.getOpportunities();
+    expect(o.apy).toBe(9);
+    expect(o.tvlUsd).toBe(42e6);
+    expect(o.scoresEstimated).toBe(false);
+  });
+
+  test('a later enricher still wins a field both of them set', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'row', apy: 1 })])],
+      enrichmentAdapters: [apyStamper('aggregator', 5), apyStamper('first-party', 9)],
+      chainTvlSource: noChainTvl,
+    });
+    const [o] = await svc.getOpportunities();
+    expect(o.apy).toBe(9);
+  });
+
+  test('one throwing enricher does not cost the others their overlay', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'row', apy: 1 })])],
+      enrichmentAdapters: [throwingEnricher('broken'), apyStamper('healthy', 6)],
+      chainTvlSource: noChainTvl,
+    });
+
+    const [o] = await svc.getOpportunities();
+    expect(o.apy).toBe(6);
+  });
+});
+
+/**
+ * Everything fails soft, which is right for uptime and wrong for awareness:
+ * when a source breaks, rows quietly revert to curated estimates and nobody is
+ * told. That is how the dataset stayed wrong for months. The service emits a
+ * structured record per refresh so a drop in live coverage is visible.
+ */
+describe('refresh observability', () => {
+  function capturing() {
+    const records: Array<Record<string, unknown>> = [];
+    return { records, log: (r: Record<string, unknown>) => void records.push(r) };
+  }
+
+  test('reports live coverage for the refresh', async () => {
+    const { records, log } = capturing();
+    const svc = createYieldService({
+      originAdapters: [
+        // Mirrors the seed adapter: a live row starts flagged estimated and an
+        // enricher clears the flag when it lands a reading.
+        originStub([
+          makeOpportunity({ id: 'a', scoresEstimated: true }),
+          makeOpportunity({ id: 'b', scoresEstimated: true }),
+          makeOpportunity({ id: 'c', scoresEstimated: true }),
+        ]),
+      ],
+      // Claims 'a' only, so two rows fall back.
+      enrichmentAdapters: [claimOne('partial', 'a')],
+      chainTvlSource: noChainTvl,
+      log,
+    });
+
+    await svc.getOpportunities();
+
+    const summary = records.find(r => r.event === 'refresh.complete')!;
+    expect(summary).toBeDefined();
+    expect(summary.rows).toBe(3);
+    expect(summary.live).toBe(1);
+    expect(summary.estimated).toBe(2);
+    expect(typeof summary.durationMs).toBe('number');
+  });
+
+  test('names an enricher that failed, so a broken source is attributable', async () => {
+    const { records, log } = capturing();
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'a' })])],
+      enrichmentAdapters: [throwingEnricher('velar')],
+      chainTvlSource: noChainTvl,
+      log,
+    });
+
+    await svc.getOpportunities();
+
+    const failure = records.find(r => r.event === 'enricher.failed')!;
+    expect(failure).toBeDefined();
+    expect(failure.source).toBe('velar');
+    expect(String(failure.reason)).toContain('upstream is down');
+  });
+
+  test('reports an enricher that answered but claimed nothing', async () => {
+    // Not an error, and the most useful early warning there is: a source that
+    // stops matching any row looks perfectly healthy from the outside.
+    const { records, log } = capturing();
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'a' })])],
+      enrichmentAdapters: [claimNothing('defillama')],
+      chainTvlSource: noChainTvl,
+      log,
+    });
+
+    await svc.getOpportunities();
+
+    const idle = records.find(r => r.event === 'enricher.claimedNothing')!;
+    expect(idle).toBeDefined();
+    expect(idle.source).toBe('defillama');
+  });
+
+  test('a logger that throws cannot break a refresh', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([makeOpportunity({ id: 'a' })])],
+      enrichmentAdapters: [],
+      chainTvlSource: noChainTvl,
+      log: () => {
+        throw new Error('log sink exploded');
+      },
+    });
+
+    await expect(svc.getOpportunities()).resolves.toHaveLength(1);
   });
 });
 

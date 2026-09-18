@@ -34,7 +34,25 @@ export interface YieldServiceDeps {
   chainTvlSource: () => Promise<number>;
   now: () => number;
   cacheTtlMs: number;
+  /**
+   * Where refresh telemetry goes. Injected rather than imported so tests can
+   * capture records without a module-level sink and a test-only reset hatch.
+   */
+  log: LogSink;
 }
+
+/** One structured telemetry record. `event` names it; the rest is context. */
+export type LogRecord = Record<string, unknown> & { event: string };
+export type LogSink = (record: LogRecord) => void;
+
+/**
+ * Default sink: one JSON line per record on stdout, which is what every
+ * hosting platform already collects. Deliberately not a logging library —
+ * there is nothing here a dependency would do better yet.
+ */
+const consoleSink: LogSink = record => {
+  console.log(JSON.stringify({ ts: new Date().toISOString(), ...record }));
+};
 
 export const defaultDeps: YieldServiceDeps = {
   // Register data sources here. Adding a protocol = add its adapter to this list.
@@ -53,6 +71,7 @@ export const defaultDeps: YieldServiceDeps = {
     hiroPoxAdapter,
   ],
   chainTvlSource: fetchStacksChainTvl,
+  log: consoleSink,
   now: Date.now,
   cacheTtlMs: 60_000,
 };
@@ -177,6 +196,74 @@ function buildStats(opps: YieldOpportunity[], chainTvl: number): GlobalStats {
   };
 }
 
+/**
+ * Folds concurrent enrichment results back into one list.
+ *
+ * Two rules, and the second is the one that is easy to get wrong.
+ *
+ * WHICH ROWS an enricher claimed is decided by object identity: an enricher
+ * signals "not mine" by returning the SAME reference it was given, which every
+ * adapter already does via `if (!claimed.has(o.id)) return o`. Asserted for
+ * every adapter in test/adapterContract.ts so it is a contract, not a habit.
+ *
+ * WHICH FIELDS to take is decided per field, not per row. Running concurrently
+ * means every enricher sees the ORIGINAL row, so two adapters that refine
+ * different parts of the same opportunity — StackingDAO supplies a stacking
+ * rate, Hiro supplies that row's TVL from chain state — each return a row
+ * carrying only their own change. Taking the whole row from the last writer
+ * would silently discard the other one's work; under sequential chaining that
+ * could not happen, because each enricher saw the previous one's output.
+ *
+ * So a field is overwritten only by an enricher that actually changed it, and
+ * later enrichers still win any field two of them set. List order remains the
+ * authority ranking; concurrency changed only when the work happens.
+ */
+function mergeOverlays(
+  base: NormalizedOpportunity[],
+  overlays: Array<{ enricher: EnrichmentAdapter; rows: NormalizedOpportunity[] | null; ms: number }>,
+  emit: (record: LogRecord) => void,
+): NormalizedOpportunity[] {
+  const merged: NormalizedOpportunity[] = base.map(o => ({ ...o }));
+  const claimedBy = new Map<string, number>();
+
+  for (const { enricher, rows } of overlays) {
+    if (!rows) continue; // threw; already reported
+    let claimed = 0;
+
+    for (let i = 0; i < base.length; i++) {
+      const row = rows[i];
+      // A length or order mismatch means this enricher did not honour the
+      // contract; skip rather than splice an unrelated row into place.
+      if (!row || row.id !== base[i].id) continue;
+      if (row === base[i]) continue; // untouched — not this adapter's row
+
+      claimed++;
+      const original = base[i] as unknown as Record<string, unknown>;
+      const updated = row as unknown as Record<string, unknown>;
+      const target = merged[i] as unknown as Record<string, unknown>;
+      for (const key of Object.keys(updated)) {
+        if (!Object.is(updated[key], original[key])) target[key] = updated[key];
+      }
+    }
+
+    claimedBy.set(enricher.source, claimed);
+  }
+
+  for (const { enricher, rows, ms } of overlays) {
+    if (!rows) continue;
+    const claimed = claimedBy.get(enricher.source) ?? 0;
+    // A source that answers but matches nothing looks perfectly healthy from
+    // outside, and is the earliest warning that a mapping has gone stale.
+    emit(
+      claimed === 0
+        ? { event: 'enricher.claimedNothing', source: enricher.source, durationMs: ms }
+        : { event: 'enricher.applied', source: enricher.source, claimed, durationMs: ms },
+    );
+  }
+
+  return merged;
+}
+
 export interface YieldService {
   /** Canonical, consumer-agnostic model — for /api/v1 and any future SDK. */
   getOpportunities(): Promise<YieldOpportunity[]>;
@@ -193,25 +280,63 @@ export function createYieldService(overrides: Partial<YieldServiceDeps> = {}): Y
   const deps = { ...defaultDeps, ...overrides };
   let cache: { opportunities: YieldOpportunity[]; chainTvl: number; ts: number } | null = null;
 
+  /**
+   * Telemetry must never be able to break a refresh. A sink that throws is a
+   * monitoring problem; taking the dashboard down over it would turn a
+   * monitoring problem into an outage.
+   */
+  function emit(record: LogRecord): void {
+    try {
+      deps.log(record);
+    } catch {
+      // Nowhere to report this that would not have the same failure mode.
+    }
+  }
+
   async function assemble(): Promise<{ opportunities: YieldOpportunity[]; chainTvl: number }> {
+    const refreshStartedAt = deps.now();
+
+    // Kicked off first and awaited last: the header statistic depends on
+    // nothing else in the pipeline, so making it wait for enrichment added its
+    // whole latency to the refresh for no reason.
+    const chainTvlPromise = deps.chainTvlSource().catch(() => 0);
     // 1. Gather normalized opportunities from every origin adapter. A source
     //    that throws is skipped rather than failing the whole refresh.
     const gathered = await Promise.all(deps.originAdapters.map(a => a.fetchOpportunities().catch(() => [])));
     let normalized: NormalizedOpportunity[] = gathered.flat();
 
-    // 2. Enrich with live data (each enrichment adapter refines in turn). A
-    //    throwing enricher is skipped like a failing origin source: losing one
+    // 2. Enrich with live data. Every enricher sees the same input and they run
+    //    CONCURRENTLY, so a refresh costs the slowest upstream rather than the
+    //    sum of all of them — six sequential calls measured 20-46s against a
+    //    60s cache, which a first-time visitor waits through.
+    //
+    //    Precedence is unchanged: results are merged in list order, so the list
+    //    still reads least to most authoritative and a later enricher still
+    //    wins a contested row. What changed is that precedence now comes from
+    //    the list, not from whichever upstream happened to answer first.
+    //
+    //    A throwing enricher is skipped like a failing origin source: losing one
     //    live overlay degrades the reading, it must never fail the refresh and
-    //    take the dashboard down with it. Rows keep whatever the previous stage
-    //    produced — no flags are invented, since we cannot know which rows this
-    //    enricher would have claimed.
-    for (const enricher of deps.enrichmentAdapters) {
-      try {
-        normalized = await enricher.enrich(normalized);
-      } catch {
-        // Skip this overlay and continue with the remaining enrichers.
-      }
-    }
+    //    take the dashboard down with it.
+    const overlays = await Promise.all(
+      deps.enrichmentAdapters.map(async enricher => {
+        const startedAt = deps.now();
+        try {
+          const rows = await enricher.enrich(normalized);
+          return { enricher, rows, ms: deps.now() - startedAt };
+        } catch (e) {
+          emit({
+            event: 'enricher.failed',
+            source: enricher.source,
+            reason: e instanceof Error ? e.message : String(e),
+            durationMs: deps.now() - startedAt,
+          });
+          return { enricher, rows: null, ms: deps.now() - startedAt };
+        }
+      }),
+    );
+
+    normalized = mergeOverlays(normalized, overlays, emit);
 
     // 3. Risk assessment (explainable sub-factors).
     const risks = new Map<string, RiskAssessment>(normalized.map(o => [o.id, assessRisk(o)]));
@@ -222,9 +347,23 @@ export function createYieldService(overrides: Partial<YieldServiceDeps> = {}): Y
     // 5. Compose canonical domain objects.
     const opportunities = normalized.map(o => toOpportunity(o, risks.get(o.id)!, scores.get(o.id)!));
 
-    // A header statistic is never worth failing the refresh for: 0 makes
-    // buildStats fall back to the summed opportunity TVL.
-    const chainTvl = await deps.chainTvlSource().catch(() => 0);
+    // A header statistic is never worth failing the refresh for: 0 renders as
+    // unavailable rather than as a real zero.
+    const chainTvl = await chainTvlPromise;
+
+    // The one record worth alerting on. Everything in this pipeline fails soft,
+    // so a broken source shows up here as live coverage falling — never as an
+    // error. Watch this number, not the error rate.
+    const live = opportunities.filter(o => o.status !== 'coming-soon');
+    emit({
+      event: 'refresh.complete',
+      rows: opportunities.length,
+      live: live.filter(o => !o.scoresEstimated).length,
+      estimated: live.filter(o => o.scoresEstimated).length,
+      chainTvlUsd: chainTvl,
+      durationMs: deps.now() - refreshStartedAt,
+    });
+
     return { opportunities, chainTvl };
   }
 

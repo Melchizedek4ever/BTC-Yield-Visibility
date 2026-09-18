@@ -144,7 +144,12 @@ export const defillamaAdapter: EnrichmentAdapter = {
     return opps.map(o => {
       if (o.status === 'coming-soon') return o;
       const id = o.protocol.metadata.defiLlamaPool;
-      if (!id) return { ...o, isStale: false, scoresEstimated: true };
+      // Not mapped here — return the row untouched, same reference. The service
+      // merges concurrent overlays by identity, so rebuilding a row we never
+      // looked at would claim it from whichever source actually read it. The
+      // `scoresEstimated: true` this used to stamp was redundant anyway: the
+      // seed adapter already starts every live row flagged.
+      if (!id) return o;
 
       const live = byPool[id];
 
