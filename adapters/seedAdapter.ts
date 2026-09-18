@@ -79,6 +79,7 @@ function normalize(r: ProtocolRecord, m: MarketBaseline): NormalizedOpportunity 
     status: r.status,
     launchTarget: r.launchTarget,
     capacityNote: r.capacityNote,
+    unpublishedRate: r.unpublishedRate,
     // Live rows start as estimates and an enrichment adapter clears the flag
     // when it lands a real reading. Coming-soon rows are left unflagged: their
     // figures are published launch targets, already labelled as such, and no
@@ -101,9 +102,15 @@ export const seedAdapter: ProtocolAdapter = {
     // A registry entry with no baseline is a data-integrity gap, not a runtime
     // error: skip the row rather than emit an opportunity with no market
     // figures at all, and let the missing row show up as reduced coverage.
-    return PROTOCOL_REGISTRY.map(r => {
-      const m = baselineById.get(r.id);
-      return m ? normalize(r, m) : null;
-    }).filter(o => o !== null);
+    //
+    // `hiddenReason` is the deliberate version of the same thing — a record we
+    // keep and research but do not yet publish, because no source can support
+    // the figures a row would have to show.
+    return PROTOCOL_REGISTRY.filter(r => !r.hiddenReason)
+      .map(r => {
+        const m = baselineById.get(r.id);
+        return m ? normalize(r, m) : null;
+      })
+      .filter(o => o !== null);
   },
 };

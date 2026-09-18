@@ -134,6 +134,21 @@ rawScore   = realYield × (healthScore / 10) × (0.4 + 0.6 × sustainability)
           </p>
         </Section>
 
+        <Section title="What &ldquo;audited&rdquo; means here">
+          <p>
+            An audit badge records that the <strong>protocol</strong> has published audit coverage, and names the firm.
+            It does not assert that the specific contract behind a given opportunity fell inside that audit&apos;s scope
+            &mdash; we have not verified scope against the audit reports themselves, and we would rather say so than
+            let a badge imply more than we checked.
+          </p>
+          <p className="mt-3">
+            This matters most for newer products built on established protocols, where the protocol is audited but a
+            recent contract may not be. Those rows are rated a band riskier by hand under smart-contract risk, with the
+            reason recorded alongside. Treat an audit badge as evidence of a protocol&apos;s practices, not as assurance
+            about one contract.
+          </p>
+        </Section>
+
         <Section title="Data sourcing">
           <p>
             Figures come from several sources, ranked by how far they sit from the chain. A reading taken

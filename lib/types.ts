@@ -67,6 +67,16 @@ export interface YieldProtocol {
 
   // Lifecycle. Defaults to 'live' when omitted.
   status?: 'live' | 'coming-soon';
+  /**
+   * Set when no source publishes a rate for this strategy, holding the reason.
+   * A managed strategy such as funding-rate arbitrage has nothing readable on
+   * chain and nothing exposed off it, so the honest output is to say so rather
+   * than show a curated number the reader cannot check anywhere.
+   *
+   * The row keeps its TVL and its full risk breakdown — only the rate is
+   * missing — and is excluded from the best/safest APY stats.
+   */
+  unpublishedRate?: string;
   launchTarget?: string;   // e.g. "Q3 2026" — only for coming-soon sources
   capacityNote?: string;   // short one-liner about program terms
 }

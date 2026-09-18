@@ -50,8 +50,21 @@ const REQUIRED_FIELDS = [
   'updatedAt',
 ] as const;
 
-/** Present only on some rows, so allowed but not required. */
-const OPTIONAL_FIELDS = ['launchTarget', 'capacityNote', 'scoresEstimated', 'isStale'] as const;
+/**
+ * Present only on some rows, so allowed but not required. Additive within
+ * YieldOpportunity@1 — an existing consumer that ignores these still reads a
+ * valid row, which is why adding one here is not a version bump.
+ */
+const OPTIONAL_FIELDS = [
+  'launchTarget',
+  'capacityNote',
+  'scoresEstimated',
+  'isStale',
+  // Set when no source publishes a rate for the strategy; holds the reason.
+  // A consumer that ignores it sees apy 0, which is why the field has to be
+  // read to render the row honestly.
+  'unpublishedRate',
+] as const;
 
 const RISK_FIELDS = [
   'overallScore',

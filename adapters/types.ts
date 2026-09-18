@@ -40,6 +40,16 @@ export interface NormalizedOpportunity {
   status: 'live' | 'coming-soon';
   launchTarget?: string;
   capacityNote?: string;
+  /**
+   * Set when no source publishes a rate for this strategy, holding the reason.
+   * A managed strategy such as funding-rate arbitrage has nothing readable on
+   * chain and nothing exposed off it, so the honest output is to say so rather
+   * than show a curated number the reader cannot check anywhere.
+   *
+   * The row keeps its TVL and its full risk breakdown — only the rate is
+   * missing — and is excluded from the best/safest APY stats.
+   */
+  unpublishedRate?: string;
   scoresEstimated?: boolean;
   /** True when a live reading was rejected as anomalous and this is a stale fallback value. */
   isStale?: boolean;

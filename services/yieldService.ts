@@ -87,6 +87,7 @@ function toOpportunity(
     status: o.status,
     launchTarget: o.launchTarget,
     capacityNote: o.capacityNote,
+    unpublishedRate: o.unpublishedRate,
     scoresEstimated: o.scoresEstimated,
     isStale: o.isStale,
     updatedAt: o.updatedAt,
@@ -152,19 +153,24 @@ function toLegacy(o: YieldOpportunity): YieldProtocol {
     status: o.status,
     launchTarget: o.launchTarget,
     capacityNote: o.capacityNote,
+    unpublishedRate: o.unpublishedRate,
   };
 }
 
 function buildStats(opps: YieldOpportunity[], chainTvl: number): GlobalStats {
   const live = opps.filter(o => o.status !== 'coming-soon');
+  // A strategy whose rate nobody publishes carries apy 0, which is a placeholder
+  // rather than a reading. Including it would drag the headline down with a
+  // number that is not a rate, so the APY stats are taken over rated rows only.
+  const rated = live.filter(o => !o.unpublishedRate);
   return {
     // DefiLlama's chain-wide DeFi TVL, reported as-is. Summing our own rows
     // measures something else — they include consensus-level stacking that
     // chain DeFi TVL excludes — so there is no honest fallback here: 0 means
     // the upstream figure is unavailable, and the UI says so.
     totalTvl: chainTvl,
-    bestApy: Math.max(...live.map(o => o.apy), 0),
-    safestApy: Math.max(...live.filter(o => o.risk.overallScore <= 3).map(o => o.apy), 0),
+    bestApy: Math.max(...rated.map(o => o.apy), 0),
+    safestApy: Math.max(...rated.filter(o => o.risk.overallScore <= 3).map(o => o.apy), 0),
     activeSourceCount: live.length,
     upcomingCount: opps.length - live.length,
     estimatedCount: live.filter(o => o.scoresEstimated).length,

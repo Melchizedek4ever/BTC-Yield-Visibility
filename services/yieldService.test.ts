@@ -54,17 +54,17 @@ describe('pipeline assembly', () => {
   test('emits one opportunity per seeded protocol, in seed order', () => {
     expect(opportunities.map(o => o.id)).toEqual([
       'bitcoin-staking',
-      'dual-stacking',
       'native-stacking',
       'hermetica-hbtc',
       'stackingdao-ststx',
+      'stackingdao-stbtc',
+      'stackingdao-ststxbtc',
       'zest-btc-supply',
-      'granite-btc-supply',
+      'zest-ststxbtc-supply',
       'bitflow-sbtc-stx',
-      'alex-sbtc-alex',
+      'bitflow-sbtc-pbtc',
       'velar-sbtc',
       'alex-stx-farm',
-      'arkadiko-diko',
     ]);
   });
 
@@ -176,9 +176,16 @@ describe('dashboard stats', () => {
   });
 
   test('counts live, upcoming, and estimated rows', () => {
-    expect(stats.activeSourceCount).toBe(11);
-    expect(stats.upcomingCount).toBe(1);
-    expect(stats.estimatedCount).toBe(11); // no live source reachable in this scenario
+    // The counts must partition the set: every row is either live or upcoming,
+    // and estimated rows are a subset of the live ones. Pinning the dataset's
+    // current size instead would fail on any curation decision.
+    expect(stats.activeSourceCount + stats.upcomingCount).toBe(opportunities.length);
+    expect(stats.activeSourceCount).toBe(
+      opportunities.filter(o => o.status !== 'coming-soon').length,
+    );
+    expect(stats.estimatedCount).toBeLessThanOrEqual(stats.activeSourceCount);
+    // No upstream is reachable in this scenario, so every live row falls back.
+    expect(stats.estimatedCount).toBe(stats.activeSourceCount);
   });
 });
 
@@ -265,6 +272,58 @@ describe('origin adapter failure isolation', () => {
     expect(rows).toEqual([]);
     expect(s.activeSourceCount).toBe(0);
     expect(s.bestApy).toBe(0); // Math.max seeded with 0, not -Infinity
+  });
+});
+
+/**
+ * Some strategies have no rate any source publishes — a delta-neutral funding
+ * arbitrage has nothing readable on chain and nothing exposed off it. Showing a
+ * curated number there is the exact failure this product exists to prevent, so
+ * the row says the rate is unpublished and keeps everything else it can support.
+ */
+describe('strategies with no published rate', () => {
+  const unrated = () =>
+    makeOpportunity({
+      id: 'no-rate',
+      apy: 0,
+      apyBase: 0,
+      apyReward: 0,
+      tvlUsd: 5_600_000,
+      unpublishedRate: 'Managed strategy — the operator publishes no rate.',
+    });
+
+  test('carries the disclosure through to the opportunity', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([unrated()])],
+      enrichmentAdapters: [],
+      chainTvlSource: noChainTvl,
+    });
+    const [o] = await svc.getOpportunities();
+    expect(o.unpublishedRate).toBe('Managed strategy — the operator publishes no rate.');
+  });
+
+  test('is excluded from the best-APY stat rather than counted as 0%', async () => {
+    // Counting it would drag the headline down with a number that is not a
+    // rate; ranking it above a verified one would be worse still.
+    const svc = createYieldService({
+      originAdapters: [originStub([unrated(), makeOpportunity({ id: 'rated', apy: 4 })])],
+      enrichmentAdapters: [],
+      chainTvlSource: noChainTvl,
+    });
+    const { stats: s } = await svc.getDashboard();
+    expect(s.bestApy).toBe(4);
+  });
+
+  test('still carries risk factors and TVL — only the rate is missing', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([unrated()])],
+      enrichmentAdapters: [],
+      chainTvlSource: noChainTvl,
+    });
+    const { protocols: rows } = await svc.getDashboard();
+    expect(rows[0].unpublishedRate).toBeDefined();
+    expect(rows[0].tvlUsd).toBe(5_600_000);
+    expect(rows[0].riskFactors).toHaveLength(7);
   });
 });
 

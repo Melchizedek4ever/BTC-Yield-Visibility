@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { seedAdapter } from '@/adapters/seedAdapter';
 import { describeAdapterContract } from '@/test/adapterContract';
 import { PROTOCOL_REGISTRY } from '@/data/protocolRegistry';
+import { MARKET_BASELINE } from '@/data/marketBaseline';
 
 // The seed adapter is the reference implementation of the contract; it must
 // also faithfully carry the curated dataset into the normalized shape.
@@ -10,7 +11,28 @@ describeAdapterContract(seedAdapter);
 describe('seed adapter normalization', () => {
   test('supplies the full curated dataset', async () => {
     const opps = await seedAdapter.fetchOpportunities();
-    expect(opps.length).toBeGreaterThanOrEqual(10);
+    // Stated against the registry rather than a fixed count: the seam's claim
+    // is that every record with a baseline becomes an opportunity, which holds
+    // however many rows curation decides to carry.
+    const withBaseline = PROTOCOL_REGISTRY.filter(
+      r => !r.hiddenReason && MARKET_BASELINE.some(m => m.protocolId === r.id),
+    );
+    expect(opps.length).toBe(withBaseline.length);
+    expect(opps.length).toBeGreaterThan(0);
+  });
+
+  test('withholds records marked as not ready to list', async () => {
+    // Some opportunities are real and tracked but cannot yet be represented
+    // honestly — no source publishes their rate or size. Keeping the curated
+    // record while withholding the row means the research is not lost and
+    // relisting is a one-line change, rather than a rebuild from scratch.
+    const withheld = PROTOCOL_REGISTRY.filter(r => r.hiddenReason);
+    const opps = await seedAdapter.fetchOpportunities();
+    for (const r of withheld) {
+      expect(opps.map(o => o.id)).not.toContain(r.id);
+    }
+    // Guard against the test passing because nothing is marked.
+    expect(withheld.length).toBeGreaterThan(0);
   });
 
   test('splits multi-token earn assets into individual reward assets', async () => {
@@ -23,10 +45,23 @@ describe('seed adapter normalization', () => {
   });
 
   test('joins every registry record to its market baseline', async () => {
+    // The drift check, stated directly rather than inferred from a count:
+    // every registry record needs a baseline, INCLUDING withheld ones, because
+    // a record missing its baseline is the drift this guards against and
+    // withholding must not hide it.
+    const orphaned = PROTOCOL_REGISTRY.filter(
+      r => !MARKET_BASELINE.some(m => m.protocolId === r.id),
+    ).map(r => r.id);
+    expect(orphaned, 'registry records with no market baseline').toEqual([]);
+
+    // And a baseline with no registry record is the same drift, other way up.
+    const stranded = MARKET_BASELINE.filter(
+      m => !PROTOCOL_REGISTRY.some(r => r.id === m.protocolId),
+    ).map(m => m.protocolId);
+    expect(stranded, 'baselines with no registry record').toEqual([]);
+
     const opps = await seedAdapter.fetchOpportunities();
-    // A registry entry whose baseline is missing is skipped, so an equal count
-    // is the signal that the two curated files have not drifted apart.
-    expect(opps.length).toBe(PROTOCOL_REGISTRY.length);
+    expect(opps.length).toBe(PROTOCOL_REGISTRY.filter(r => !r.hiddenReason).length);
   });
 
   test('carries the curated estimate and its review date alongside the figures', async () => {

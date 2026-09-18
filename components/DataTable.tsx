@@ -120,6 +120,20 @@ export default function DataTable({ protocols, loading }: DataTableProps) {
           </span>
         );
       case 'apy':
+        // A strategy nobody publishes a rate for carries apy 0 as a placeholder.
+        // Rendering that as "0.0%" would state a rate we do not have, so the
+        // cell says so instead and the reason is on hover.
+        if (p.unpublishedRate) {
+          return (
+            <div
+              className="font-mono-data text-[11px] leading-tight"
+              style={{ color: 'var(--text-dim)' }}
+              title={p.unpublishedRate}
+            >
+              NOT PUBLISHED
+            </div>
+          );
+        }
         return (
           <div>
             <div className="flex items-center gap-1.5">

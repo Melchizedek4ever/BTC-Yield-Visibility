@@ -75,14 +75,29 @@ export default function ProtocolCard({ protocol: p }: ProtocolCardProps) {
         <div className="flex items-end justify-between">
           <div>
             <div className="font-mono-data text-[10px] uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-faint)' }}>
-              {comingSoon ? 'Target APY' : 'APY'}
+              {p.unpublishedRate ? 'Rate' : comingSoon ? 'Target APY' : 'APY'}
             </div>
-            <div className="font-mono-data text-3xl" style={{ color: apyColorVal }}>
-              {comingSoon ? `~${formatApy(p.apy)}` : formatApy(p.apy)}
-            </div>
-            <div className="font-mono-data text-[11px] mt-0.5" style={{ color: 'var(--text-faint)' }}>
-              {p.apyRange.min}–{p.apyRange.max}% range · earn {p.earnAsset}
-            </div>
+            {/* No source publishes a rate for this strategy — say that, rather
+                than render the placeholder apy as though it were a reading. */}
+            {p.unpublishedRate ? (
+              <>
+                <div className="font-mono-data text-xl" style={{ color: 'var(--text-dim)' }}>
+                  Not published
+                </div>
+                <div className="text-[11px] mt-1 max-w-[22rem]" style={{ color: 'var(--text-faint)' }}>
+                  {p.unpublishedRate}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="font-mono-data text-3xl" style={{ color: apyColorVal }}>
+                  {comingSoon ? `~${formatApy(p.apy)}` : formatApy(p.apy)}
+                </div>
+                <div className="font-mono-data text-[11px] mt-0.5" style={{ color: 'var(--text-faint)' }}>
+                  {p.apyRange.min}–{p.apyRange.max}% range · earn {p.earnAsset}
+                </div>
+              </>
+            )}
           </div>
 
           {comingSoon ? (
