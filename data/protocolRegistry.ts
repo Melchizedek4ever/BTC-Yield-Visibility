@@ -103,41 +103,11 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     externalIds: {},
   },
   {
-    id: "dual-stacking",
-    name: "Dual Stacking",
-    shortName: "Dual Stacking",
-    slug: "dual-stacking",
-    description: "Stack STX and hold sBTC simultaneously for boosted BTC yield",
-    category: "Staking",
-    icon: "🔗",
-    website: "https://stacks.co",
-    appUrl: "https://app.stacks.co",
-
-    protocolAgeMonths: 6,
-    audited: true,
-    audits: ["Clarity Alliance"],
-    smartContractRisk: "Very Low",
-    ilRisk: "None",
-    healthScore: 9.2,
-    curatedRiskScore: 2.2,
-
-    strategy: "Stack STX + hold sBTC for BTC-denominated yield via Proof of Transfer",
-    earnAsset: "BTC",
-    supportedAssets: ["STX","sBTC"],
-    lockup: "Cycle-based (~2 weeks)",
-    minimumDeposit: null,
-
-    status: "live",
-    // No live source yet: the PoX component is covered by native-stacking and
-    // the sBTC component has no published rate. Left deliberately unmapped.
-    externalIds: {},
-  },
-  {
     id: "native-stacking",
     name: "Native STX Stacking",
     shortName: "STX Stacking",
     slug: "native-stacking",
-    description: "Lock STX in Proof of Transfer consensus to earn BTC rewards",
+    description: "Lock STX in Proof of Transfer consensus to earn BTC rewards. Pairing sBTC alongside (\"dual stacking\") targets a boosted rate on the same locked STX.",
     category: "Staking",
     icon: "⚡",
     website: "https://stacks.co",
@@ -151,7 +121,10 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     healthScore: 9.5,
     curatedRiskScore: 1.8,
 
-    strategy: "Lock STX in PoX consensus. Bitcoin miners transfer BTC to stackers each cycle.",
+    // Dual stacking was previously a separate row. It is the same locked STX
+    // under PoX, so a second row double-counted the pool and invented a TVL
+    // nobody publishes — it belongs here as a variant of one opportunity.
+    strategy: "Lock STX in PoX consensus. Bitcoin miners transfer BTC to stackers each cycle. Holding sBTC alongside the locked STX targets a boosted rate on the same position.",
     earnAsset: "BTC",
     supportedAssets: ["STX"],
     lockup: "Cycle-based (~2 weeks)",
@@ -317,37 +290,6 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     },
   },
   {
-    id: "alex-sbtc-alex",
-    name: "ALEX — sBTC-ALEX Pool",
-    shortName: "ALEX LP",
-    slug: "alex-sbtc-alex",
-    description: "Provide liquidity on ALEX AMM and earn trading fees + ALEX rewards",
-    category: "DEX/LP",
-    icon: "🔬",
-    website: "https://alexlab.co",
-    appUrl: "https://app.alexlab.co",
-
-    protocolAgeMonths: 30,
-    audited: true,
-    audits: ["Clarity Alliance"],
-    smartContractRisk: "Medium",
-    ilRisk: "Medium",
-    healthScore: 7.2,
-    curatedRiskScore: 6.2,
-
-    strategy: "LP in sBTC-ALEX pair. ALEX token emission rewards dominate APY.",
-    earnAsset: "sBTC + ALEX",
-    supportedAssets: ["sBTC","ALEX"],
-    lockup: "None",
-    minimumDeposit: null,
-
-    status: "live",
-    externalIds: {
-      defiLlamaProject: "alex",
-      alexPoolId: 125,
-    },
-  },
-  {
     id: "velar-sbtc",
     name: "Velar — sBTC Pool",
     shortName: "Velar",
@@ -407,36 +349,6 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     externalIds: {
       defiLlamaProject: "alex",
       alexPoolId: 13,
-    },
-  },
-  {
-    id: "arkadiko-diko",
-    name: "Arkadiko — DIKO Stake",
-    shortName: "Arkadiko",
-    slug: "arkadiko-diko",
-    description: "Stake DIKO governance token to earn protocol yield",
-    category: "Yield",
-    icon: "🏺",
-    website: "https://arkadiko.finance",
-    appUrl: "https://app.arkadiko.finance",
-
-    protocolAgeMonths: 28,
-    audited: true,
-    audits: ["Clarity Alliance"],
-    smartContractRisk: "Medium",
-    ilRisk: "None",
-    healthScore: 6.2,
-    curatedRiskScore: 6.5,
-
-    strategy: "Stake DIKO governance token. Earn DIKO + USDA stablecoin from protocol fees.",
-    earnAsset: "DIKO + USDA",
-    supportedAssets: ["DIKO"],
-    lockup: "None",
-    minimumDeposit: null,
-
-    status: "live",
-    externalIds: {
-      defiLlamaProject: "arkadiko",
     },
   },
 ];

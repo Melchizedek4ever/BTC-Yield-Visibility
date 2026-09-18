@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { seedAdapter } from '@/adapters/seedAdapter';
 import { describeAdapterContract } from '@/test/adapterContract';
 import { PROTOCOL_REGISTRY } from '@/data/protocolRegistry';
+import { MARKET_BASELINE } from '@/data/marketBaseline';
 
 // The seed adapter is the reference implementation of the contract; it must
 // also faithfully carry the curated dataset into the normalized shape.
@@ -10,7 +11,14 @@ describeAdapterContract(seedAdapter);
 describe('seed adapter normalization', () => {
   test('supplies the full curated dataset', async () => {
     const opps = await seedAdapter.fetchOpportunities();
-    expect(opps.length).toBeGreaterThanOrEqual(10);
+    // Stated against the registry rather than a fixed count: the seam's claim
+    // is that every record with a baseline becomes an opportunity, which holds
+    // however many rows curation decides to carry.
+    const withBaseline = PROTOCOL_REGISTRY.filter(r =>
+      MARKET_BASELINE.some(m => m.protocolId === r.id),
+    );
+    expect(opps.length).toBe(withBaseline.length);
+    expect(opps.length).toBeGreaterThan(0);
   });
 
   test('splits multi-token earn assets into individual reward assets', async () => {

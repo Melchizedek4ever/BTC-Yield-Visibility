@@ -30,6 +30,14 @@
  * Each row below says which source its numbers came from and, where a figure
  * could NOT be verified, says that outright rather than letting an unchecked
  * number inherit a fresh review date.
+ *
+ * ── 2026-09-18 curation ────────────────────────────────────────────────────
+ * Three rows removed. `alex-sbtc-alex` described a pool holding no liquidity,
+ * so it was not an opportunity anyone could take. `arkadiko-diko` paid DIKO
+ * and USDA — no Bitcoin anywhere in it, which fails the product's question
+ * before it fails any data check. `dual-stacking` was folded into
+ * native-stacking: it is the same locked STX under PoX, so a second row
+ * double-counted the pool and carried a TVL nobody publishes.
  */
 export interface MarketBaseline {
   protocolId: string;
@@ -57,26 +65,6 @@ export const MARKET_BASELINE: MarketBaseline[] = [
     tvl7dChange: 0,
     tvl30dChange: 0,
     reviewedAt: "2026-08-21",
-  },
-  {
-    // APY anchored to the measured native PoX rate (5.93%, StackingDAO stats).
-    // Dual stacking pays that plus an sBTC component nobody publishes, so the
-    // figure here is a floor, not a forecast — it should read no higher than
-    // the rate we can actually measure.
-    //
-    // TVL: deliberately NOT the ~$110M PoX pool. Dual stackers are a subset of
-    // all stackers, already counted under native-stacking; repeating the pool
-    // total here would double-count the same STX across two rows. No source
-    // publishes the subset, so this stays a conservative placeholder.
-    protocolId: "dual-stacking",
-    apy: 5.93,
-    apyBase: 5.93,
-    apyReward: 0,
-    apyRange: { min: 4, max: 10 },
-    tvlUsd: 25000000,
-    tvl7dChange: 0,
-    tvl30dChange: 0,
-    reviewedAt: "2026-09-17",
   },
   {
     // Verified against PoX chain state and StackingDAO's published rate:
@@ -169,21 +157,6 @@ export const MARKET_BASELINE: MarketBaseline[] = [
     reviewedAt: "2026-09-17",
   },
   {
-    // ALEX pool 125 (ALEX/sBTC) exists but holds NO liquidity at all — zero
-    // balances on both sides, zero APR. The previous 22.4% / $12M described an
-    // opportunity a user cannot take. Whether this row should remain listed at
-    // all is a product decision; the numbers, at least, now match reality.
-    protocolId: "alex-sbtc-alex",
-    apy: 0,
-    apyBase: 0,
-    apyReward: 0,
-    apyRange: { min: 0, max: 25 },
-    tvlUsd: 0,
-    tvl7dChange: 0,
-    tvl30dChange: 0,
-    reviewedAt: "2026-09-17",
-  },
-  {
     // Live from Velar's pool API (1.07% APY, $104,309 TVL).
     protocolId: "velar-sbtc",
     apy: 1.07,
@@ -210,20 +183,6 @@ export const MARKET_BASELINE: MarketBaseline[] = [
     tvlUsd: 273000,
     tvl7dChange: 0,
     tvl30dChange: 0,
-    reviewedAt: "2026-09-17",
-  },
-  {
-    // TVL verified against DefiLlama ($1.02M). APY NOT VERIFIED: Arkadiko's
-    // public API returns swap-pool balances only, and this row is DIKO
-    // staking, which it does not cover. 11.2% is an unchecked carry-over.
-    protocolId: "arkadiko-diko",
-    apy: 11.2,
-    apyBase: 11.2,
-    apyReward: 0,
-    apyRange: { min: 2, max: 15 },
-    tvlUsd: 1000000,
-    tvl7dChange: 0.5,
-    tvl30dChange: -2.1,
     reviewedAt: "2026-09-17",
   },
 ];
