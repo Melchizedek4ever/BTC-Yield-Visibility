@@ -97,19 +97,61 @@ export const MARKET_BASELINE: MarketBaseline[] = [
     reviewedAt: "2026-09-17",
   },
   {
-    // APY from StackingDAO's own stats endpoint (3.39%, now adapter-fed).
-    // TVL from DefiLlama ($31.2M) rather than StackingDAO's own $45.7M: their
-    // figure covers stSTX, stSTXbtc and stBTC together, and this row is stSTX
-    // alone. The third-party number is the conservative choice.
+    // APY from StackingDAO's own stats endpoint (adapter-fed).
+    //
+    // TVL corrected down from $31.0M. That figure was the protocol total,
+    // which also contains stBTC. DefiLlama's per-token breakdown splits
+    // StackingDAO into $22.0M STX and $11.9M sBTC; this row is part of the STX
+    // bucket, shared with stSTXbtc. Both take a conservative share summing
+    // below the bucket rather than either claiming it whole.
     protocolId: "stackingdao-ststx",
     apy: 3.39,
     apyBase: 3.39,
     apyReward: 0,
     apyRange: { min: 2, max: 8 },
-    tvlUsd: 31000000,
+    tvlUsd: 20000000,
     tvl7dChange: 0.8,
     tvl30dChange: 3.1,
     reviewedAt: "2026-09-17",
+  },
+  {
+    // APY live from StackingDAO (2.69%, confirmed against the figure their own
+    // app displays). TVL measured: DefiLlama's per-token breakdown of
+    // StackingDAO splits $33.9M into $22.0M STX and $11.9M sBTC, and the sBTC
+    // bucket is this product.
+    protocolId: "stackingdao-stbtc",
+    apy: 2.69,
+    apyBase: 2.69,
+    apyReward: 0,
+    apyRange: { min: 1, max: 6 },
+    tvlUsd: 11933292,
+    tvl7dChange: 0,
+    tvl30dChange: 0,
+    reviewedAt: "2026-09-18",
+  },
+  {
+    // APY live from StackingDAO (apy_ststxbtc, 3.54%).
+    //
+    // TWO CAVEATS, both needing confirmation with the team:
+    //  1. Their marketing page headlines stSTXbtc at a figure equal to
+    //     apy_native, not apy_ststxbtc. The field name is explicit and the
+    //     stBTC key checked out exactly against their own display, so the API
+    //     field is taken as authoritative — but it is not independently proven.
+    //  2. TVL is NOT measured. The $22.0M STX bucket covers stSTX and stSTXbtc
+    //     together and no source splits it. Where a measured bucket covers two
+    //     rows and the split is unknown, both rows take a conservative share
+    //     that deliberately sums BELOW the bucket: understating liquidity
+    //     raises the liquidity risk score, which errs against the opportunity
+    //     rather than in its favour.
+    protocolId: "stackingdao-ststxbtc",
+    apy: 3.54,
+    apyBase: 3.54,
+    apyReward: 0,
+    apyRange: { min: 1, max: 7 },
+    tvlUsd: 2000000,
+    tvl7dChange: 0,
+    tvl30dChange: 0,
+    reviewedAt: "2026-09-18",
   },
   {
     // DefiLlama reports this pool paying 0% with ~190 observations and a
@@ -124,6 +166,20 @@ export const MARKET_BASELINE: MarketBaseline[] = [
     tvl7dChange: 2.2,
     tvl30dChange: 9.8,
     reviewedAt: "2026-09-17",
+  },
+  {
+    // Measured from DefiLlama's Zest stSTXbtc pool: $2,175,623 TVL paying 0%,
+    // with a 30-day mean of 0. Both figures are adapter-fed; these are the
+    // fallback. A lending market paying nothing is worth showing as such.
+    protocolId: "zest-ststxbtc-supply",
+    apy: 0,
+    apyBase: 0,
+    apyReward: 0,
+    apyRange: { min: 0, max: 5 },
+    tvlUsd: 2175623,
+    tvl7dChange: 0,
+    tvl30dChange: 0,
+    reviewedAt: "2026-09-18",
   },
   {
     // TVL verified against DefiLlama ($6.86M) — note the slug is `granite`,
@@ -155,6 +211,21 @@ export const MARKET_BASELINE: MarketBaseline[] = [
     tvl7dChange: 0,
     tvl30dChange: 0,
     reviewedAt: "2026-09-17",
+  },
+  {
+    // Measured from Bitflow's ticker: $141,180 liquidity and $0 of 24-hour
+    // volume. No volume means no trading fees, so the fee yield is genuinely
+    // zero — a measurement, not an estimate. This is the larger of Bitflow's
+    // two sBTC pools. TVL is adapter-fed; this is the fallback.
+    protocolId: "bitflow-sbtc-pbtc",
+    apy: 0,
+    apyBase: 0,
+    apyReward: 0,
+    apyRange: { min: 0, max: 6 },
+    tvlUsd: 141180,
+    tvl7dChange: 0,
+    tvl30dChange: 0,
+    reviewedAt: "2026-09-18",
   },
   {
     // Live from Velar's pool API (1.07% APY, $104,309 TVL).

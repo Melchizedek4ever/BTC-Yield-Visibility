@@ -18,7 +18,30 @@ export interface Asset {
  */
 export type AssetTier = 'bitcoin' | 'stablecoin' | 'native' | 'protocol';
 
-const BITCOIN_ASSETS = new Set(['BTC', 'SBTC', 'XBTC', 'HBTC', 'WBTC', 'LBTC']);
+/**
+ * Anything a holder ultimately redeems for Bitcoin. That includes wrappers
+ * (sBTC, xBTC, pBTC) and yield-bearing claims (stBTC, stSTXbtc, BTCz): the
+ * wrapper's name does not change what the yield accrues in.
+ *
+ * The bridge or issuer risk those wrappers carry is real, but it belongs to
+ * counterparty and smart-contract risk, which are separate factors. Pricing it
+ * in here as well would charge the same risk twice and rate a pure-BTC position
+ * as though it paid a governance token.
+ */
+const BITCOIN_ASSETS = new Set([
+  'BTC',
+  'SBTC',
+  'XBTC',
+  'HBTC',
+  'WBTC',
+  'LBTC',
+  'PBTC',
+  'ABTC',
+  // BTC-denominated yield-bearing claims.
+  'STBTC',
+  'STSTXBTC',
+  'BTCZ',
+]);
 const STABLECOIN_ASSETS = new Set(['USDA', 'USDC', 'USDT', 'SUSDT', 'AEUSDC', 'USDH', 'DAI']);
 const NATIVE_ASSETS = new Set(['STX', 'STSTX']);
 

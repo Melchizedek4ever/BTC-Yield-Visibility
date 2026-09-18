@@ -212,6 +212,72 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     },
   },
   {
+    id: "stackingdao-stbtc",
+    name: "StackingDAO — stBTC",
+    shortName: "stBTC",
+    slug: "stackingdao-stbtc",
+    description: "Deposit BTC or sBTC and receive stBTC — native Bitcoin yield that stays liquid across Stacks DeFi.",
+    category: "Staking",
+    icon: "🏛️",
+    website: "https://stackingdao.com",
+    appUrl: "https://app.stackingdao.com",
+
+    protocolAgeMonths: 24,
+    audited: true,
+    audits: ["Clarity Alliance"],
+    // Higher than stSTX despite the same operator: stBTC is a recent product
+    // and its contract has far less time in production than the protocol
+    // behind it. The audit coverage recorded here is the protocol's — whether
+    // this specific contract is in scope still needs confirming.
+    smartContractRisk: "Medium",
+    ilRisk: "None",
+    healthScore: 8,
+    curatedRiskScore: 3.8,
+
+    strategy: "Deposit BTC or sBTC → receive stBTC. Yield accrues in Bitcoin through a rising stBTC/sBTC ratio, realised on redemption.",
+    earnAsset: "BTC",
+    supportedAssets: ["BTC","sBTC"],
+    lockup: "None (liquid)",
+    minimumDeposit: null,
+
+    status: "live",
+    externalIds: {
+      defiLlamaProject: "stackingdao",
+      stackingDaoApyKey: "stbtc",
+    },
+  },
+  {
+    id: "stackingdao-ststxbtc",
+    name: "StackingDAO — stSTXbtc",
+    shortName: "stSTXbtc",
+    slug: "stackingdao-ststxbtc",
+    description: "Stake STX and take the rewards in sBTC rather than STX — Bitcoin yield from a STX position.",
+    category: "Staking",
+    icon: "🏛️",
+    website: "https://stackingdao.com",
+    appUrl: "https://app.stackingdao.com",
+
+    protocolAgeMonths: 24,
+    audited: true,
+    audits: ["Clarity Alliance"],
+    smartContractRisk: "Medium",
+    ilRisk: "None",
+    healthScore: 8,
+    curatedRiskScore: 3.8,
+
+    strategy: "Stake STX through StackingDAO and receive PoX rewards in sBTC, distributed roughly weekly and claimable at any time.",
+    earnAsset: "sBTC",
+    supportedAssets: ["STX"],
+    lockup: "None (liquid)",
+    minimumDeposit: null,
+
+    status: "live",
+    externalIds: {
+      defiLlamaProject: "stackingdao",
+      stackingDaoApyKey: "ststxbtc",
+    },
+  },
+  {
     id: "zest-btc-supply",
     name: "Zest — BTC Supply",
     shortName: "Zest",
@@ -240,6 +306,40 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     externalIds: {
       defiLlamaProject: "zest-v2",
       defiLlamaPool: "f003d6df-fb8f-4a74-8cfb-aee8cc44f433",
+    },
+  },
+  {
+    id: "zest-ststxbtc-supply",
+    name: "Zest — stSTXbtc Supply",
+    shortName: "Zest stSTXbtc",
+    slug: "zest-ststxbtc-supply",
+    description: "Supply stSTXbtc to Zest's lending market and earn borrower interest on top of the underlying stacking yield.",
+    category: "Lending",
+    icon: "🍊",
+    website: "https://zestprotocol.com",
+    appUrl: "https://app.zestprotocol.com",
+
+    protocolAgeMonths: 20,
+    audited: true,
+    audits: ["Clarity Alliance"],
+    smartContractRisk: "Low",
+    ilRisk: "None",
+    healthScore: 8.4,
+    // Above the plain sBTC market: this position stacks Zest's contract risk on
+    // top of StackingDAO's, since the collateral is itself a liquid-staking
+    // claim rather than the underlying asset.
+    curatedRiskScore: 4.4,
+
+    strategy: "Supply stSTXbtc to Zest's lending pool. Earns borrower interest in addition to the BTC yield the token already accrues.",
+    earnAsset: "sBTC",
+    supportedAssets: ["stSTXbtc"],
+    lockup: "None",
+    minimumDeposit: null,
+
+    status: "live",
+    externalIds: {
+      defiLlamaProject: "zest-v2",
+      defiLlamaPool: "369d03f8-40a3-4d00-aad7-659776f41647",
     },
   },
   {
@@ -301,6 +401,40 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     externalIds: {
       defiLlamaProject: "bitflow",
       bitflowPool: "SM1793C4R5PZ4NS4VQ4WMP7SKKYVH8JZEWSZ9HCCR.xyk-pool-sbtc-stx-v-1-1",
+    },
+  },
+  {
+    id: "bitflow-sbtc-pbtc",
+    name: "Bitflow — sBTC-pBTC",
+    shortName: "Bitflow sBTC-pBTC",
+    slug: "bitflow-sbtc-pbtc",
+    description: "Provide liquidity to Bitflow's sBTC-pBTC stableswap — a BTC-to-BTC pair, so both sides stay Bitcoin.",
+    category: "DEX/LP",
+    icon: "🌊",
+    website: "https://bitflow.finance",
+    appUrl: "https://app.bitflow.finance",
+
+    protocolAgeMonths: 15,
+    audited: true,
+    audits: ["Clarity Alliance"],
+    smartContractRisk: "Medium",
+    // Both sides are Bitcoin claims, so divergence is bounded in a way an
+    // sBTC-STX pair's is not. Not "None": pBTC is a bridged representation and
+    // a depeg would move the pair like any other divergence.
+    ilRisk: "Low",
+    healthScore: 7,
+    curatedRiskScore: 5.2,
+
+    strategy: "LP the sBTC-pBTC stableswap pool. Earns trading fees; both legs remain BTC-denominated, so there is no exit to a non-Bitcoin asset.",
+    earnAsset: "sBTC",
+    supportedAssets: ["sBTC","pBTC"],
+    lockup: "None",
+    minimumDeposit: null,
+
+    status: "live",
+    externalIds: {
+      defiLlamaProject: "bitflow",
+      bitflowPool: "SM1793C4R5PZ4NS4VQ4WMP7SKKYVH8JZEWSZ9HCCR.stableswap-pool-sbtc-pbtc-v-1-1",
     },
   },
   {

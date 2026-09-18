@@ -57,9 +57,13 @@ describe('pipeline assembly', () => {
       'native-stacking',
       'hermetica-hbtc',
       'stackingdao-ststx',
+      'stackingdao-stbtc',
+      'stackingdao-ststxbtc',
       'zest-btc-supply',
+      'zest-ststxbtc-supply',
       'granite-btc-supply',
       'bitflow-sbtc-stx',
+      'bitflow-sbtc-pbtc',
       'velar-sbtc',
       'alex-stx-farm',
     ]);

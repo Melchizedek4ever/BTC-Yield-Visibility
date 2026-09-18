@@ -126,6 +126,17 @@ describe('reward-quality risk', () => {
     expect(score(['sBTC'])).toBe(1);
   });
 
+  test('treats BTC-denominated yield-bearing claims as Bitcoin', () => {
+    // stBTC, stSTXbtc and pBTC are all claims denominated in Bitcoin — a
+    // holder redeems them for BTC, so the yield accrues in Bitcoin however
+    // the wrapper is named. Left unrecognised they fall to the protocol-token
+    // tier, which would rate a pure-BTC position as if it paid a governance
+    // token.
+    expect(score(['stBTC'])).toBe(1);
+    expect(score(['stSTXbtc'])).toBe(1);
+    expect(score(['pBTC'])).toBe(1);
+  });
+
   test('ranks stablecoins and the native chain asset above Bitcoin but below protocol tokens', () => {
     expect(score(['USDA'])).toBe(3);
     expect(score(['STX'])).toBe(4.5);
