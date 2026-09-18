@@ -272,6 +272,58 @@ describe('origin adapter failure isolation', () => {
   });
 });
 
+/**
+ * Some strategies have no rate any source publishes — a delta-neutral funding
+ * arbitrage has nothing readable on chain and nothing exposed off it. Showing a
+ * curated number there is the exact failure this product exists to prevent, so
+ * the row says the rate is unpublished and keeps everything else it can support.
+ */
+describe('strategies with no published rate', () => {
+  const unrated = () =>
+    makeOpportunity({
+      id: 'no-rate',
+      apy: 0,
+      apyBase: 0,
+      apyReward: 0,
+      tvlUsd: 5_600_000,
+      unpublishedRate: 'Managed strategy — the operator publishes no rate.',
+    });
+
+  test('carries the disclosure through to the opportunity', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([unrated()])],
+      enrichmentAdapters: [],
+      chainTvlSource: noChainTvl,
+    });
+    const [o] = await svc.getOpportunities();
+    expect(o.unpublishedRate).toBe('Managed strategy — the operator publishes no rate.');
+  });
+
+  test('is excluded from the best-APY stat rather than counted as 0%', async () => {
+    // Counting it would drag the headline down with a number that is not a
+    // rate; ranking it above a verified one would be worse still.
+    const svc = createYieldService({
+      originAdapters: [originStub([unrated(), makeOpportunity({ id: 'rated', apy: 4 })])],
+      enrichmentAdapters: [],
+      chainTvlSource: noChainTvl,
+    });
+    const { stats: s } = await svc.getDashboard();
+    expect(s.bestApy).toBe(4);
+  });
+
+  test('still carries risk factors and TVL — only the rate is missing', async () => {
+    const svc = createYieldService({
+      originAdapters: [originStub([unrated()])],
+      enrichmentAdapters: [],
+      chainTvlSource: noChainTvl,
+    });
+    const { protocols: rows } = await svc.getDashboard();
+    expect(rows[0].unpublishedRate).toBeDefined();
+    expect(rows[0].tvlUsd).toBe(5_600_000);
+    expect(rows[0].riskFactors).toHaveLength(7);
+  });
+});
+
 describe('enrichment precedence', () => {
   test('later enrichers overlay earlier ones, so a first-party reading wins', async () => {
     // The ordering guarantee documented on defaultDeps: DefiLlama is the broad

@@ -46,6 +46,16 @@ export interface ProtocolRecord {
   status: 'live' | 'coming-soon';
   launchTarget?: string;
   capacityNote?: string;
+  /**
+   * Set when no source publishes a rate for this strategy, holding the reason.
+   * A managed strategy such as funding-rate arbitrage has nothing readable on
+   * chain and nothing exposed off it, so the honest output is to say so rather
+   * than show a curated number the reader cannot check anywhere.
+   *
+   * The row keeps its TVL and its full risk breakdown — only the rate is
+   * missing — and is excluded from the best/safest APY stats.
+   */
+  unpublishedRate?: string;
 
   /** Identifiers enrichment adapters use to find this protocol upstream. */
   externalIds: {
@@ -162,6 +172,10 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     minimumDeposit: null,
 
     status: "live",
+    // Delta-neutral funding-rate arbitrage has no rate readable on chain, and
+    // Hermetica exposes none off it. The row keeps its TVL and risk breakdown;
+    // the rate is stated as unpublished rather than carried as a guess.
+    unpublishedRate: "Managed strategy — no rate is published by the protocol or readable on chain.",
     externalIds: {
       defiLlamaProject: "hermetica",
     },

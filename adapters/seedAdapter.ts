@@ -79,6 +79,7 @@ function normalize(r: ProtocolRecord, m: MarketBaseline): NormalizedOpportunity 
     status: r.status,
     launchTarget: r.launchTarget,
     capacityNote: r.capacityNote,
+    unpublishedRate: r.unpublishedRate,
     // Live rows start as estimates and an enrichment adapter clears the flag
     // when it lands a real reading. Coming-soon rows are left unflagged: their
     // figures are published launch targets, already labelled as such, and no

@@ -81,16 +81,16 @@ export const MARKET_BASELINE: MarketBaseline[] = [
     reviewedAt: "2026-09-17",
   },
   {
-    // TVL verified against DefiLlama ($5.57M). APY NOT VERIFIED — Hermetica
-    // publishes no publicly reachable rate, and a delta-neutral funding-rate
-    // strategy has none to read on chain. 12.5% is an unchecked carry-over
-    // from the previous curation and should be treated as the least reliable
-    // number in this file.
+    // TVL verified against DefiLlama ($5.57M). The rate is declared unpublished
+    // in the registry, so these are placeholders rather than estimates — the
+    // row renders a disclosure instead of a number and is excluded from the
+    // APY stats. The previous 12.5% was an unchecked carry-over with nothing
+    // behind it; zeroing it is what stops it leaking into scoring.
     protocolId: "hermetica-hbtc",
-    apy: 12.5,
-    apyBase: 3.5,
-    apyReward: 9,
-    apyRange: { min: 8, max: 16 },
+    apy: 0,
+    apyBase: 0,
+    apyReward: 0,
+    apyRange: { min: 0, max: 0 },
     tvlUsd: 5600000,
     tvl7dChange: 0,
     tvl30dChange: 0,
