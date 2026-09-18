@@ -32,6 +32,13 @@
  * number inherit a fresh review date.
  *
  * ── 2026-09-18 curation ────────────────────────────────────────────────────
+ * `granite-btc-supply` removed. It described "supply BTC to earn lending
+ * interest from BTC borrowers" at 4.8%. Granite's own documentation says
+ * liquidity providers supply STABLECOINS to earn yield; sBTC is collateral you
+ * borrow against, never an asset you earn on. The row described a product that
+ * does not exist. Granite's contract reads are documented in
+ * docs/data-sources/34-granite-protocol.md for the day it opens a BTC market.
+ *
  * Three rows removed. `alex-sbtc-alex` described a pool holding no liquidity,
  * so it was not an opportunity anyone could take. `arkadiko-diko` paid DIKO
  * and USDA — no Bitcoin anywhere in it, which fails the product's question
@@ -182,19 +189,23 @@ export const MARKET_BASELINE: MarketBaseline[] = [
     reviewedAt: "2026-09-18",
   },
   {
-    // TVL verified against DefiLlama ($6.86M) — note the slug is `granite`,
-    // not `granite-protocol`, which resolves to nothing. APY NOT VERIFIED:
-    // Granite exposes no public market endpoint, and the supply rate has to be
-    // read from the reserve contract. 4.8% is an unchecked carry-over.
-    protocolId: "granite-btc-supply",
-    apy: 4.8,
-    apyBase: 4.8,
+    // Rate declared unpublished in the registry — Zest publishes a 6-8% target
+    // rather than a realised rate, so these are placeholders, not estimates.
+    //
+    // TVL is 0 because NO source publishes it: DefiLlama carries Zest V2 as one
+    // protocol without a vault breakdown, and the vault exposes no public
+    // endpoint. 0 is the conservative default here — it drives liquidity risk
+    // to its maximum, which errs against the opportunity rather than for it.
+    // Correct this the moment the share-price contract read lands.
+    protocolId: "zest-zvstbtc",
+    apy: 0,
+    apyBase: 0,
     apyReward: 0,
-    apyRange: { min: 1, max: 6 },
-    tvlUsd: 6900000,
+    apyRange: { min: 0, max: 0 },
+    tvlUsd: 0,
     tvl7dChange: 0,
     tvl30dChange: 0,
-    reviewedAt: "2026-09-17",
+    reviewedAt: "2026-09-18",
   },
   {
     // Verified against Bitflow's ticker: $68,107 liquidity and $0 of 24-hour

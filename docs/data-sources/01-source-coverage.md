@@ -16,25 +16,50 @@ from protocol-native APIs and chain reads, one protocol at a time. That is more
 work than wiring one aggregator, and it is also the moat: anyone can call
 DefiLlama, and on Stacks it returns almost nothing.
 
+## Curation, 2026-09-18
+
+The universe was narrowed to opportunities that are (a) Bitcoin-denominated and
+(b) representable from a source. Removed:
+
+- `alex-sbtc-alex` — the ALEX pool holds no liquidity at all.
+- `arkadiko-diko` — pays DIKO and USDA; no Bitcoin in it.
+- `granite-btc-supply` — **described a product that does not exist.** Granite's
+  LPs supply stablecoins; sBTC is collateral you borrow against, never an asset
+  you earn on. See 34-granite-protocol.md.
+- `dual-stacking` — folded into `native-stacking`; same locked STX, so a second
+  row double-counted the pool.
+
+Added, all against adapters that already existed: `stackingdao-stbtc`,
+`stackingdao-ststxbtc`, `zest-ststxbtc-supply`, `bitflow-sbtc-pbtc`. Plus
+`zest-zvstbtc`, which has no source yet and says so.
+
+`hermetica-hbtc` and `zest-zvstbtc` carry `unpublishedRate`: the row keeps its
+TVL and full risk breakdown, states why no rate is available, and is excluded
+from the APY stats. Coverage is not the metric — *provable* coverage is, and a
+row that says "no rate is published" is worth more than one that invents a
+number.
+
 ## Coverage today
 
 | Opportunity | APY source | TVL source | Still curated |
 |---|---|---|---|
-| native-stacking | StackingDAO (`apy_native`) | Hiro PoX + price | — |
-| stackingdao-ststx | StackingDAO (`apy_ststx`) | DefiLlama | — |
+| native-stacking | StackingDAO `apy_native` | Hiro PoX + price | — |
+| stackingdao-ststx | StackingDAO `apy_ststx` | DefiLlama split | TVL share |
+| stackingdao-stbtc | StackingDAO `apy_stbtc` | DefiLlama split | — |
+| stackingdao-ststxbtc | StackingDAO `apy_ststxbtc` | — | TVL share |
 | zest-btc-supply | DefiLlama pool | DefiLlama pool | — |
+| zest-ststxbtc-supply | DefiLlama pool | DefiLlama pool | — |
+| zest-zvstbtc | **none — rate unpublished** | **none** | everything |
+| hermetica-hbtc | **none — rate unpublished** | DefiLlama-reviewed | TVL freshness |
+| bitflow-sbtc-stx | curated (0%, no volume) | Bitflow ticker | APY |
+| bitflow-sbtc-pbtc | curated (0%, no volume) | Bitflow ticker | APY |
 | velar-sbtc | Velar pool API | Velar pool API | — |
-| alex-stx-farm | ALEX (fee APR only) | curated | emissions, TVL |
-| alex-sbtc-alex | ALEX (fee APR only) | curated | TVL |
-| bitflow-sbtc-stx | curated | Bitflow ticker | APY |
-| granite-btc-supply | curated | curated (DefiLlama-reviewed) | APY, live TVL |
-| hermetica-hbtc | curated | curated (DefiLlama-reviewed) | APY, live TVL |
-| arkadiko-diko | curated | curated (DefiLlama-reviewed) | APY, live TVL |
-| dual-stacking | curated (anchored to native) | curated | both |
+| alex-stx-farm | ALEX fee APR | curated | emissions, TVL |
 | bitcoin-staking | pre-launch target | — | not applicable |
 
-Roughly **5 of 11 live rows** carry a live reading on a good refresh. The
-remainder fall back to `data/marketBaseline.ts`, flagged `scoresEstimated`.
+**9 of 12 live rows** carry a live reading on a good refresh, up from 2 of 11
+before this work. The rest fall back to `data/marketBaseline.ts`, flagged
+`scoresEstimated`, or state that no rate is published.
 
 ## What makes each source different
 
@@ -109,20 +134,21 @@ real volume, and incentive emissions that end when the program does. They must
 be fetched separately and never pre-summed upstream, because
 `yieldSustainability` reads `apyReward / apy`.
 
-**Managed strategy** (Hermetica, Arkadiko) — returns depend on an operator
-executing correctly. There may be no honest live source at all. This is where
-curated-with-`reviewedAt` is the *correct* long-term answer rather than a
-placeholder, and the UI should say so rather than imply a reading exists.
+**Managed strategy** (Hermetica, zvstBTC) — returns depend on an operator
+executing correctly, and a levered strategy's return moves against the
+depositor when borrowing costs rise. There may be no honest live source at
+all. These rows carry `unpublishedRate` and render the reason instead of a
+number, rather than implying a reading exists.
 
 ## Where the remaining gaps have to come from
 
-| Protocol | Public API? | Route to real data |
+| Target | Public API? | Route to real data |
 |---|---|---|
-| Granite | No (`api.granite.world` 404s) | Reserve contract via Hiro `call-read`. Audits are public on GitHub. |
-| Hermetica | No | Likely none on-chain — funding-rate strategy has no readable rate. Ask the team. |
-| Arkadiko | Swap pools only (`arkadiko-api.herokuapp.com`) | DIKO staking is not covered by that API; needs a contract read. |
+| **zvstBTC** (top target) | No | Read the vault's share price on chain twice, an interval apart, for a realised rate. Principal is not in the docs — find it via Hiro address listing, or ask Zest. See 33-zest-protocol.md. |
 | Bitflow APY | Ticker has no fee rate | Request an SDK API key, or read the fee parameter from the pool contract. |
-| Dual stacking | No | No published figure for the STX-plus-sBTC subset. |
+| Hermetica | No | Likely none on-chain — a funding-rate strategy has no readable rate. Ask the team. |
+| stSTXbtc TVL | No | No source splits StackingDAO's STX bucket between stSTX and stSTXbtc. |
+| Lending utilization | Partly | Needed for real lending risk. Granite's reads are documented and working even though its row is gone (34-granite-protocol.md); Zest's equivalent still has to be found. |
 
 The common answer is Hiro's read-only contract-call proxy:
 

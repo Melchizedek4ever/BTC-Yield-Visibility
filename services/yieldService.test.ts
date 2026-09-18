@@ -61,7 +61,7 @@ describe('pipeline assembly', () => {
       'stackingdao-ststxbtc',
       'zest-btc-supply',
       'zest-ststxbtc-supply',
-      'granite-btc-supply',
+      'zest-zvstbtc',
       'bitflow-sbtc-stx',
       'bitflow-sbtc-pbtc',
       'velar-sbtc',

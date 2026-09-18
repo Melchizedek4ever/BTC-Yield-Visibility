@@ -343,33 +343,43 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     },
   },
   {
-    id: "granite-btc-supply",
-    name: "Granite — BTC Supply",
-    shortName: "Granite",
-    slug: "granite-btc-supply",
-    description: "Supply BTC to institutional-grade lending protocol",
-    category: "Lending",
-    icon: "🪨",
-    website: "https://granite.fi",
-    appUrl: "https://app.granite.fi",
+    id: "zest-zvstbtc",
+    name: "Zest — zvstBTC Vault",
+    shortName: "zvstBTC",
+    slug: "zest-zvstbtc",
+    description: "Automated levered Bitcoin staking — the vault posts stBTC as collateral, borrows sBTC against it and restakes, looping to amplify the base staking yield.",
+    category: "Yield",
+    icon: "🍊",
+    website: "https://zestprotocol.com",
+    appUrl: "https://app.zestprotocol.com",
 
-    protocolAgeMonths: 12,
+    protocolAgeMonths: 20,
     audited: true,
     audits: ["Clarity Alliance"],
-    smartContractRisk: "Low",
+    // High despite Zest's own maturity: this is Zest's first Stacks Vault, and
+    // a deposit rides three contract surfaces at once — the vault, Zest's
+    // lending market, and StackingDAO's staking. A failure in any one of them
+    // reaches the position.
+    smartContractRisk: "High",
     ilRisk: "None",
-    healthScore: 8.2,
-    curatedRiskScore: 4.0,
+    healthScore: 6.5,
+    curatedRiskScore: 6.8,
 
-    strategy: "Supply BTC to institutional borrowers. Higher rates than Zest.",
+    strategy: "Deposit BTC, sBTC or stBTC. The vault posts stBTC as collateral on Zest, borrows sBTC, stakes it into more stBTC, and repeats within its risk limits. Net return is the staking yield on the larger position minus borrowing costs and fees.",
     earnAsset: "BTC",
-    supportedAssets: ["BTC","sBTC"],
-    lockup: "None",
+    supportedAssets: ["BTC","sBTC","stBTC"],
+    lockup: "Withdrawal cooldown",
     minimumDeposit: null,
 
     status: "live",
+    // Zest publishes a 6-8% TARGET, which is not a reading — realised return
+    // depends on borrowing cost and utilisation, and moves against the
+    // depositor when either does. Showing the target as an APY would present
+    // an aspiration as a measurement. The vault's share price is readable on
+    // chain, so this is solvable; see docs/data-sources/33-zest-protocol.md.
+    unpublishedRate: "Levered strategy — Zest publishes a 6-8% target, not a realised rate. Returns move with borrowing costs and utilisation.",
     externalIds: {
-      defiLlamaProject: "granite",
+      defiLlamaProject: "zest-v2",
     },
   },
   {
