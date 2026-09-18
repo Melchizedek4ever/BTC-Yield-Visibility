@@ -16,6 +16,12 @@ export interface RiskAssessment {
   liquidityRisk: RiskFactor;
   protocolAgeRisk: RiskFactor;
   yieldSustainabilityRisk: RiskFactor;
+  /** Principal risk from holding a paired position rather than a single asset. */
+  impermanentLossRisk: RiskFactor;
+  /** Whether the yield accrues in Bitcoin or in an asset that can decay. */
+  rewardQualityRisk: RiskFactor;
+  /** Exposure to a third party's solvency, discretion, or execution. */
+  counterpartyRisk: RiskFactor;
   /** One-line human summary of the dominant risk drivers. */
   explanation: string;
 }

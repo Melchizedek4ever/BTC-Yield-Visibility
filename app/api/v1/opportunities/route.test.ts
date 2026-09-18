@@ -58,6 +58,9 @@ const RISK_FIELDS = [
   'liquidityRisk',
   'protocolAgeRisk',
   'yieldSustainabilityRisk',
+  'impermanentLossRisk',
+  'rewardQualityRisk',
+  'counterpartyRisk',
   'explanation',
 ] as const;
 
@@ -124,7 +127,15 @@ describe('opportunity shape', () => {
       const risk = row.risk as Record<string, unknown>;
       expect(Object.keys(risk).sort()).toEqual([...RISK_FIELDS].sort());
 
-      for (const factor of ['smartContractRisk', 'liquidityRisk', 'protocolAgeRisk', 'yieldSustainabilityRisk']) {
+      for (const factor of [
+        'smartContractRisk',
+        'liquidityRisk',
+        'protocolAgeRisk',
+        'yieldSustainabilityRisk',
+        'impermanentLossRisk',
+        'rewardQualityRisk',
+        'counterpartyRisk',
+      ]) {
         const f = risk[factor] as Record<string, unknown>;
         expect(Object.keys(f).sort()).toEqual(['rationale', 'score']);
         expect(typeof f.rationale).toBe('string');

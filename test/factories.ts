@@ -1,5 +1,6 @@
 import type { NormalizedOpportunity } from '@/adapters/types';
 import type { Protocol } from '@/domain/protocol';
+import type { RiskAssessment } from '@/domain/riskAssessment';
 
 /**
  * Test-data builders. Defaults describe one realistic mid-tier live
@@ -50,6 +51,28 @@ export function makeOpportunity(overrides: Partial<NormalizedOpportunity> = {}):
     seedRiskScore: 4,
     status: 'live',
     updatedAt: '2026-07-30T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+/**
+ * A risk assessment with a chosen overall score. Lets tests of downstream
+ * consumers (scoring, the service façade) state the risk they depend on
+ * directly, instead of reverse-engineering inputs that make the risk engine
+ * produce it — which would couple those tests to the engine's internals.
+ */
+export function makeRiskAssessment(overrides: Partial<RiskAssessment> = {}): RiskAssessment {
+  const factor = (score: number) => ({ score, rationale: 'Test rationale.' });
+  return {
+    overallScore: 4,
+    smartContractRisk: factor(3),
+    liquidityRisk: factor(4.5),
+    protocolAgeRisk: factor(3),
+    yieldSustainabilityRisk: factor(2.5),
+    impermanentLossRisk: factor(1),
+    rewardQualityRisk: factor(1),
+    counterpartyRisk: factor(2),
+    explanation: 'Test explanation.',
     ...overrides,
   };
 }
