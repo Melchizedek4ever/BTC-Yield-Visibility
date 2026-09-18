@@ -31,6 +31,10 @@ curated range and rejected the truth for disagreeing with a guess.
 
 ## Start here
 
+[`02-open-questions.md`](02-open-questions.md) is the list of what we have NOT
+verified and what is waiting on someone else — read it before trusting any
+claim in here, and before sending anyone a number.
+
 [`01-source-coverage.md`](01-source-coverage.md) is the live picture: what
 each opportunity's numbers actually come from today, what is still a human
 guess, what makes each source different, and how adapter design has to change

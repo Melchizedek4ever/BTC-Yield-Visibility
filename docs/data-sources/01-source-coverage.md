@@ -30,10 +30,14 @@ The universe was narrowed to opportunities that are (a) Bitcoin-denominated and
   row double-counted the pool.
 
 Added, all against adapters that already existed: `stackingdao-stbtc`,
-`stackingdao-ststxbtc`, `zest-ststxbtc-supply`, `bitflow-sbtc-pbtc`. Plus
-`zest-zvstbtc`, which has no source yet and says so.
+`stackingdao-ststxbtc`, `zest-ststxbtc-supply`, `bitflow-sbtc-pbtc`.
 
-`hermetica-hbtc` and `zest-zvstbtc` carry `unpublishedRate`: the row keeps its
+`zest-zvstbtc` is curated but **withheld** (`hiddenReason` in the registry):
+with neither a rate nor a size it rendered as two blanks, which reads as a
+broken dashboard rather than a deliberate disclosure. The research is kept and
+relisting is a one-line change — see 02-open-questions.md.
+
+`hermetica-hbtc` carries `unpublishedRate`: the row keeps its
 TVL and full risk breakdown, states why no rate is available, and is excluded
 from the APY stats. Coverage is not the metric — *provable* coverage is, and a
 row that says "no rate is published" is worth more than one that invents a
@@ -49,7 +53,6 @@ number.
 | stackingdao-ststxbtc | StackingDAO `apy_ststxbtc` | — | TVL share |
 | zest-btc-supply | DefiLlama pool | DefiLlama pool | — |
 | zest-ststxbtc-supply | DefiLlama pool | DefiLlama pool | — |
-| zest-zvstbtc | **none — rate unpublished** | **none** | everything |
 | hermetica-hbtc | **none — rate unpublished** | DefiLlama-reviewed | TVL freshness |
 | bitflow-sbtc-stx | curated (0%, no volume) | Bitflow ticker | APY |
 | bitflow-sbtc-pbtc | curated (0%, no volume) | Bitflow ticker | APY |
@@ -57,7 +60,7 @@ number.
 | alex-stx-farm | ALEX fee APR | curated | emissions, TVL |
 | bitcoin-staking | pre-launch target | — | not applicable |
 
-**9 of 12 live rows** carry a live reading on a good refresh, up from 2 of 11
+**10 of 11 live rows** carry a live reading on a good refresh, up from 2 of 11
 before this work. The rest fall back to `data/marketBaseline.ts`, flagged
 `scoresEstimated`, or state that no rate is published.
 

@@ -11,6 +11,22 @@ import type { IlRisk, ProtocolCategory, SmartContractRisk } from '@/domain/proto
  * Market numbers deliberately live elsewhere (see marketBaseline.ts): those
  * decay daily and should come from a live source, while these change only when
  * a protocol is audited, ages, or changes shape.
+ *
+ * ── AUDIT DATA: WHAT `audited`/`audits` ACTUALLY CLAIM ─────────────────────
+ * They record that the PROTOCOL has published audit coverage, named by firm.
+ * They do NOT claim that the specific contract behind a given opportunity was
+ * in that audit's scope, because that has not been checked against the audit
+ * reports themselves.
+ *
+ * This matters because a protocol can be audited while a newer product on it
+ * is not, which is exactly the case the risk engine should catch and currently
+ * cannot. Smart-contract risk carries the weight here instead: newer contracts
+ * on mature protocols are rated a band riskier by hand, per-row, with the
+ * reason in a comment.
+ *
+ * Tracked for verification in docs/data-sources/02-open-questions.md, and
+ * disclosed to readers on /methodology. Until it is verified, treat every
+ * named firm as protocol-level coverage rather than contract-level assurance.
  */
 export interface ProtocolRecord {
   id: string;
@@ -25,7 +41,9 @@ export interface ProtocolRecord {
 
   /** Months live. Drives protocol-age risk. */
   protocolAgeMonths: number;
+  /** Protocol-level audit coverage — NOT per-contract scope. See the header. */
   audited: boolean;
+  /** Firms that audited the protocol. Scope per opportunity is unverified. */
   audits: string[];
   smartContractRisk: SmartContractRisk;
   ilRisk: IlRisk;
@@ -56,6 +74,20 @@ export interface ProtocolRecord {
    * missing — and is excluded from the best/safest APY stats.
    */
   unpublishedRate?: string;
+
+  /**
+   * Set to withhold this record from the dashboard, holding the reason.
+   *
+   * For opportunities that are real and worth tracking but cannot yet be
+   * represented honestly — typically because no source publishes their rate or
+   * size, and a row of blanks reads as broken rather than principled. The
+   * curated research stays here, so relisting is deleting one line rather than
+   * rebuilding from scratch.
+   *
+   * Distinct from `unpublishedRate`, which SHOWS the row and states that one
+   * figure is unavailable. This hides the row entirely.
+   */
+  hiddenReason?: string;
 
   /** Identifiers enrichment adapters use to find this protocol upstream. */
   externalIds: {
@@ -378,6 +410,11 @@ export const PROTOCOL_REGISTRY: ProtocolRecord[] = [
     // an aspiration as a measurement. The vault's share price is readable on
     // chain, so this is solvable; see docs/data-sources/33-zest-protocol.md.
     unpublishedRate: "Levered strategy — Zest publishes a 6-8% target, not a realised rate. Returns move with borrowing costs and utilisation.",
+    // Withheld for now: with neither a rate nor a TVL, the row renders as two
+    // blanks, which reads as a broken dashboard rather than a deliberate
+    // disclosure. The record stays because this is the highest-value
+    // integration target we have — see docs/data-sources/02-open-questions.md.
+    hiddenReason: "No source publishes the vault's rate or size yet. Relist once the share-price contract read lands.",
     externalIds: {
       defiLlamaProject: "zest-v2",
     },
