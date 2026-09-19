@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import type { ProtocolAdapter } from '@/adapters/types';
+import type { EnrichmentAdapter, ProtocolAdapter } from '@/adapters/types';
+import { makeOpportunity, makeProtocol } from '@/test/factories';
 
 /**
  * Shared adapter contract — the executable onboarding spec.
@@ -21,6 +22,32 @@ export function describeAdapterContract(adapter: ProtocolAdapter) {
     test('enrichment adapters emit no opportunities of their own', async () => {
       if (adapter.getMetadata().kind !== 'enrichment') return;
       expect(await adapter.fetchOpportunities()).toEqual([]);
+    });
+
+    test('returns the same row object for opportunities it does not claim', async () => {
+      if (adapter.getMetadata().kind !== 'enrichment') return;
+
+      // The service runs enrichers concurrently and merges their results by
+      // object identity: a row that comes back as the SAME reference was not
+      // claimed, and a replacement was. Without this, an adapter that rebuilt
+      // every row would silently overwrite another source's reading — and an
+      // adapter that matched nothing would still report as healthy.
+      //
+      // No external identifiers are set, so no adapter should match, and none
+      // should reach the network to find that out.
+      const untouched = [
+        makeOpportunity({ id: 'unclaimed-1', protocol: makeProtocol({ metadata: {} }) }),
+        makeOpportunity({ id: 'unclaimed-2', protocol: makeProtocol({ metadata: {} }) }),
+      ];
+
+      const out = await (adapter as EnrichmentAdapter).enrich(untouched);
+
+      expect(out).toHaveLength(untouched.length);
+      out.forEach((row, i) => {
+        expect(row, `row ${untouched[i].id} was rebuilt despite not being claimed`).toBe(
+          untouched[i],
+        );
+      });
     });
 
     test('every emitted opportunity satisfies the pipeline invariants', async () => {
