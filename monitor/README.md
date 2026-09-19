@@ -58,57 +58,18 @@ second list to forget.
 
 ## Running it nightly
 
-Add `.github/workflows/monitor.yml`. It is not committed with the rest because
-pushing workflow files needs a token with the `workflow` scope — create it
-through the GitHub web UI, or push it from your own machine.
+Runs from [`.github/workflows/monitor.yml`](../.github/workflows/monitor.yml) at
+06:00 UTC daily, and can be triggered by hand from the Actions tab after
+changing a data source or a mapping.
 
-```yaml
-# Checks our data sources against reality. A failure here means the world
-# changed — a pool retired, an endpoint reshaped, a baseline gone stale — not
-# that someone broke the code.
-name: Source Monitor
+On failure it opens an issue labelled `data-source` rather than just going red
+on a page nobody visits — GitHub emails on issue creation, so no extra service
+is needed. Re-runs on the same day comment on the existing issue instead of
+stacking duplicates.
 
-on:
-  schedule:
-    # 06:00 UTC daily. Any quiet hour works; the point is that it runs without
-    # anyone remembering to run it.
-    - cron: '0 6 * * *'
-  workflow_dispatch: # so it can be run by hand after changing a data source
-
-jobs:
-  monitor:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run monitor
-```
-
-To be told when it fails rather than having to look, add a step that opens an
-issue — GitHub emails you on issue creation, so no extra service is needed:
-
-```yaml
-      - name: Report a failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Source monitor failed — ${new Date().toISOString().slice(0, 10)}`,
-              body: `A data source changed under us. Run \`npm run monitor\` locally for the detail.\n\n${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              labels: ['data-source'],
-            })
-```
-
-> **Note:** GitHub Actions will not run at all until the account billing lock is
-> cleared — jobs fail in seconds with *"your account is locked due to a billing
-> issue"*. This repository is public, where Actions minutes are free and
+> **Note:** Actions will not run at all while the account billing lock is in
+> place — jobs fail in seconds with *"your account is locked due to a billing
+> issue."* This repository is public, where Actions minutes are free and
 > unlimited, so the plan is not the cause. See
 > `docs/data-sources/02-open-questions.md`.
 

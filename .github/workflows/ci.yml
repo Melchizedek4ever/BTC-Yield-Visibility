@@ -1,4 +1,5 @@
-# Every PR must pass lint, typecheck, and the full test suite before merge.
+# Every PR must pass lint, typecheck, the full test suite, and a production
+# build before merge.
 name: CI
 
 on:
@@ -19,3 +20,6 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      # Lint, types and tests all pass on a tree that does not compile. The
+      # build is the only step that proves the app can actually ship.
+      - run: npm run build
