@@ -9,7 +9,9 @@ export default defineConfig({
   resolve: { alias: { '@': root } },
   test: {
     include: ['**/*.test.ts'],
-    exclude: ['node_modules/**', '.next/**'],
+    // The source monitor hits real upstreams and has its own config; a network
+    // blip must never fail a commit.
+    exclude: ['node_modules/**', '.next/**', 'monitor/**'],
     coverage: {
       provider: 'v8',
       // Coverage tracks the intelligence pipeline only — UI is excluded by design.
