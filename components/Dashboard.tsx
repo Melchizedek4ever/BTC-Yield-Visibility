@@ -12,6 +12,7 @@ import { BitcoinMark } from './icons/BitcoinMark';
 import { StacksMark } from './icons/StacksMark';
 import { useDashboardStore } from '@/lib/store';
 import type { YieldProtocol, GlobalStats } from '@/lib/types';
+import { countConfidenceSources } from '@/lib/dataConfidence';
 
 interface ApiResponse {
   protocols: YieldProtocol[];
@@ -33,9 +34,7 @@ export default function Dashboard() {
   const stats = data?.stats ?? null;
   const lastUpdated = protocols[0]?.lastUpdated;
 
-  const liveProtocols = protocols.filter(p => p.status !== 'coming-soon');
-  const liveCount = liveProtocols.filter(p => !p.scoresEstimated).length;
-  const totalCount = liveProtocols.length;
+  const { liveCount, totalCount } = countConfidenceSources(protocols);
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
