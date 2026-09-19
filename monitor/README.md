@@ -56,61 +56,50 @@ The checks are driven by `PROTOCOL_REGISTRY` and `MARKET_BASELINE` themselves,
 so onboarding an opportunity extends the monitor automatically. There is no
 second list to forget.
 
+## How it is wired
+
+`monitor/checks.ts` holds the logic. Two callers run it, so the scheduled run
+and the manual one cannot drift:
+
+| Caller | For |
+|---|---|
+| `monitor/sources.live.test.ts` via `npm run monitor` | a human at a terminal |
+| `app/api/monitor/route.ts` via Vercel Cron | the nightly run |
+
 ## Running it nightly
 
-Add `.github/workflows/monitor.yml`. It is not committed with the rest because
-pushing workflow files needs a token with the `workflow` scope — create it
-through the GitHub web UI, or push it from your own machine.
+Scheduled in [`vercel.json`](../vercel.json) at 06:00 UTC. Vercel Cron on the
+free plan allows one run per day in UTC, fired sometime within the scheduled
+hour — exactly this cadence, so the limit never bites.
 
-```yaml
-# Checks our data sources against reality. A failure here means the world
-# changed — a pool retired, an endpoint reshaped, a baseline gone stale — not
-# that someone broke the code.
-name: Source Monitor
+It runs on Vercel rather than GitHub Actions because Actions cannot start at all
+under the account's billing lock. See `docs/data-sources/02-open-questions.md`.
 
-on:
-  schedule:
-    # 06:00 UTC daily. Any quiet hour works; the point is that it runs without
-    # anyone remembering to run it.
-    - cron: '0 6 * * *'
-  workflow_dispatch: # so it can be run by hand after changing a data source
+### Two environment variables, both optional
 
-jobs:
-  monitor:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run monitor
+Set them in the Vercel dashboard under **Settings → Environment Variables**.
+
+**`CRON_SECRET`** — Vercel signs scheduled requests with it, and the route
+rejects anything else with a 401. Without it the endpoint is open, and it makes
+a dozen upstream calls per hit. Set this.
+
+**`TELEGRAM_BOT_TOKEN`** and **`TELEGRAM_CHAT_ID`** — a failure messages you
+instead of sitting in a log. You already have a bot and a chat id configured for
+the social project; reuse them. Without these the run still records its verdict
+through a non-200 status in Vercel's cron log, but nothing reaches you.
+
+### Checking it by hand
+
+```bash
+npm run monitor                      # locally, against live upstreams
+curl https://<deployment>/api/monitor  # the deployed route, if no CRON_SECRET
 ```
 
-To be told when it fails rather than having to look, add a step that opens an
-issue — GitHub emails you on issue creation, so no extra service is needed:
+With a secret set:
 
-```yaml
-      - name: Report a failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Source monitor failed — ${new Date().toISOString().slice(0, 10)}`,
-              body: `A data source changed under us. Run \`npm run monitor\` locally for the detail.\n\n${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              labels: ['data-source'],
-            })
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://<deployment>/api/monitor
 ```
-
-> **Note:** GitHub Actions will not run at all until the account billing lock is
-> cleared — jobs fail in seconds with *"your account is locked due to a billing
-> issue"*. This repository is public, where Actions minutes are free and
-> unlimited, so the plan is not the cause. See
-> `docs/data-sources/02-open-questions.md`.
 
 ## When it fails
 

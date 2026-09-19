@@ -116,7 +116,29 @@ calls and the utilization formula), then add utilization as an input to
 
 ---
 
-## 5. Refresh latency against cache TTL
+## 5. GitHub Actions cannot run
+
+The account is under a billing lock — every workflow run fails in seconds with
+*"the job was not started because your account is locked due to a billing
+issue."* The job never starts, so it never reaches any code. This repository is
+public, where Actions minutes are free and unlimited, so the plan is not the
+cause.
+
+Attempted and did not resolve it: re-entering card details (only one card
+available), verifying all three email addresses.
+
+**Worked around rather than fixed.** Vercel now runs the quality gate before
+every build via `vercel.json`, and the nightly source monitor runs as a Vercel
+Cron hitting `/api/monitor`. The GitHub workflows remain in the repo and stay
+correct, so they resume working if the lock ever clears — they are a redundant
+net now, not the only one.
+
+**Still worth clearing**, for one reason that is not technical: every commit and
+PR on a public repo shows a red cross, on a project whose pitch is rigour.
+Remaining option is a support ticket at https://support.github.com/ — state that
+the account has no paid services and the repository is public.
+
+## 6. Refresh latency against cache TTL
 
 Enrichment adapters run sequentially in `services/yieldService.ts`. A full
 refresh measured 20–46 seconds against a 60-second cache TTL, so a cold request
