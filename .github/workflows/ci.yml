@@ -1,4 +1,6 @@
-# Every PR must pass lint, typecheck, and the full test suite before merge.
+# Secondary gate. Vercel runs `npm run verify` before every build and reports
+# the result on the PR, so this is a redundant net rather than the only one —
+# which is why an Actions outage is survivable.
 name: CI
 
 on:
@@ -16,6 +18,9 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
+      # The same gate Vercel runs before every build and the pre-push hook runs
+      # before every push. One script, three callers, so they cannot drift.
+      - run: npm run verify
+      # Lint, types and tests all pass on a tree that does not compile. The
+      # build is the only step that proves the app can actually ship.
+      - run: npm run build
