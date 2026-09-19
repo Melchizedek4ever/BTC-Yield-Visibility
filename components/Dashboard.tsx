@@ -8,6 +8,7 @@ import RiskLegend from './RiskLegend';
 import CardsGrid from './CardsGrid';
 import DataTable from './DataTable';
 import Header from './Header';
+import ValueProposition from './ValueProposition';
 import { BitcoinMark } from './icons/BitcoinMark';
 import { StacksMark } from './icons/StacksMark';
 import { useDashboardStore } from '@/lib/store';
@@ -41,14 +42,7 @@ export default function Dashboard() {
       <Header lastUpdated={lastUpdated} liveCount={liveCount} totalCount={totalCount} />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold mb-1 tracking-tight" style={{ color: 'var(--text)' }}>
-            Bitcoin Yield Intelligence
-          </h1>
-          <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
-            Risk-adjusted yield opportunities across the Stacks ecosystem — ranked by Opportunity Score, never by APY alone.
-          </p>
-        </div>
+        <ValueProposition />
 
         {isLoading && (
           <div className="mb-4 flex items-center gap-2 font-mono-data text-xs" style={{ color: 'var(--text-faint)' }}>
