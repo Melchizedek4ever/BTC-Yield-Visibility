@@ -8,10 +8,12 @@ import RiskLegend from './RiskLegend';
 import CardsGrid from './CardsGrid';
 import DataTable from './DataTable';
 import Header from './Header';
+import ValueProposition from './ValueProposition';
 import { BitcoinMark } from './icons/BitcoinMark';
 import { StacksMark } from './icons/StacksMark';
 import { useDashboardStore } from '@/lib/store';
 import type { YieldProtocol, GlobalStats } from '@/lib/types';
+import { countConfidenceSources } from '@/lib/dataConfidence';
 
 interface ApiResponse {
   protocols: YieldProtocol[];
@@ -33,23 +35,14 @@ export default function Dashboard() {
   const stats = data?.stats ?? null;
   const lastUpdated = protocols[0]?.lastUpdated;
 
-  const liveProtocols = protocols.filter(p => p.status !== 'coming-soon');
-  const liveCount = liveProtocols.filter(p => !p.scoresEstimated).length;
-  const totalCount = liveProtocols.length;
+  const { liveCount, totalCount } = countConfidenceSources(protocols);
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
       <Header lastUpdated={lastUpdated} liveCount={liveCount} totalCount={totalCount} />
 
       <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold mb-1 tracking-tight" style={{ color: 'var(--text)' }}>
-            Bitcoin Yield Intelligence
-          </h1>
-          <p className="text-sm" style={{ color: 'var(--text-dim)' }}>
-            Risk-adjusted yield opportunities across the Stacks ecosystem — ranked by Opportunity Score, never by APY alone.
-          </p>
-        </div>
+        <ValueProposition />
 
         {isLoading && (
           <div className="mb-4 flex items-center gap-2 font-mono-data text-xs" style={{ color: 'var(--text-faint)' }}>

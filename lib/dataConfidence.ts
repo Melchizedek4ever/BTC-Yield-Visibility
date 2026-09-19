@@ -1,3 +1,29 @@
+import type { YieldProtocol } from './types';
+
+/**
+ * Which rows the confidence badge speaks for, and how many of them carry a
+ * live reading. Lived as an expression inside Dashboard.tsx, which put the
+ * arithmetic behind the product's credibility claim where nothing could test it.
+ *
+ * Two kinds of row are excluded from BOTH counts rather than counted against us:
+ *
+ *   coming-soon      — not launched, so there is nothing to read yet.
+ *   unpublishedRate  — we have stated outright that no source publishes a rate.
+ *
+ * The second is the subtle one. Leaving those rows in the denominator caps the
+ * badge below 100% permanently and implies a gap we could close by trying
+ * harder. Understating our own coverage is still misreporting it.
+ */
+export function countConfidenceSources(
+  protocols: YieldProtocol[],
+): { liveCount: number; totalCount: number } {
+  const rateable = protocols.filter(p => p.status !== 'coming-soon' && !p.unpublishedRate);
+  return {
+    liveCount: rateable.filter(p => !p.scoresEstimated).length,
+    totalCount: rateable.length,
+  };
+}
+
 export type DataConfidenceState = 'connecting' | 'live' | 'mixed' | 'estimated';
 
 export interface DataConfidenceInfo {
