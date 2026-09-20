@@ -1,0 +1,83 @@
+# Checks our data sources against reality rather than against mocks.
+#
+# A failure here means the WORLD changed — a pool retired, an endpoint reshaped,
+# a baseline gone stale — not that someone broke the code. It is deliberately
+# separate from CI for that reason: it must never block a commit, and a red run
+# is a prompt to go look at a third party, not to revert anything.
+#
+# See monitor/README.md for what each check covers and what to do when one fires.
+name: Source Monitor
+
+on:
+  schedule:
+    # 06:00 UTC daily. Any quiet hour works — the point is that it runs without
+    # anyone remembering to run it, which is the whole failure this addresses.
+    - cron: '0 6 * * *'
+  # So it can be run by hand right after changing a data source or a mapping.
+  workflow_dispatch:
+
+# The failure path opens an issue, which needs write access to issues. Contents
+# stays read-only: this workflow never modifies the repository.
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run monitor
+
+      # Without this the run goes red on a page nobody visits. Creating an issue
+      # is what actually reaches a human — GitHub emails on issue creation, so
+      # no extra service is needed.
+      - name: Report a failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0, 10);
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            // Reuse today's issue rather than stacking duplicates if the
+            // monitor is re-run by hand while someone is investigating.
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'data-source',
+            });
+            const existing = open.find(i => i.title.endsWith(today));
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `Monitor failed again: ${run}`,
+              });
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Source monitor failed — ${today}`,
+              labels: ['data-source'],
+              body: [
+                'A data source changed under us. The dashboard has NOT gone down —',
+                'everything fails soft, so affected rows have quietly reverted to',
+                'curated estimates and are serving stale numbers.',
+                '',
+                `Run: ${run}`,
+                '',
+                'Reproduce locally with `npm run monitor`. Each failure names the row',
+                'and the identifier. Start by assuming the world changed, not the code —',
+                'see monitor/README.md for what to check before editing anything.',
+              ].join('\n'),
+            });
