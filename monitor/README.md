@@ -56,22 +56,50 @@ The checks are driven by `PROTOCOL_REGISTRY` and `MARKET_BASELINE` themselves,
 so onboarding an opportunity extends the monitor automatically. There is no
 second list to forget.
 
+## How it is wired
+
+`monitor/checks.ts` holds the logic. Two callers run it, so the scheduled run
+and the manual one cannot drift:
+
+| Caller | For |
+|---|---|
+| `monitor/sources.live.test.ts` via `npm run monitor` | a human at a terminal |
+| `app/api/monitor/route.ts` via Vercel Cron | the nightly run |
+
 ## Running it nightly
 
-Runs from [`.github/workflows/monitor.yml`](../.github/workflows/monitor.yml) at
-06:00 UTC daily, and can be triggered by hand from the Actions tab after
-changing a data source or a mapping.
+Scheduled in [`vercel.json`](../vercel.json) at 06:00 UTC. Vercel Cron on the
+free plan allows one run per day in UTC, fired sometime within the scheduled
+hour — exactly this cadence, so the limit never bites.
 
-On failure it opens an issue labelled `data-source` rather than just going red
-on a page nobody visits — GitHub emails on issue creation, so no extra service
-is needed. Re-runs on the same day comment on the existing issue instead of
-stacking duplicates.
+It runs on Vercel rather than GitHub Actions because Actions cannot start at all
+under the account's billing lock. See `docs/data-sources/02-open-questions.md`.
 
-> **Note:** Actions will not run at all while the account billing lock is in
-> place — jobs fail in seconds with *"your account is locked due to a billing
-> issue."* This repository is public, where Actions minutes are free and
-> unlimited, so the plan is not the cause. See
-> `docs/data-sources/02-open-questions.md`.
+### Two environment variables, both optional
+
+Set them in the Vercel dashboard under **Settings → Environment Variables**.
+
+**`CRON_SECRET`** — Vercel signs scheduled requests with it, and the route
+rejects anything else with a 401. Without it the endpoint is open, and it makes
+a dozen upstream calls per hit. Set this.
+
+**`TELEGRAM_BOT_TOKEN`** and **`TELEGRAM_CHAT_ID`** — a failure messages you
+instead of sitting in a log. You already have a bot and a chat id configured for
+the social project; reuse them. Without these the run still records its verdict
+through a non-200 status in Vercel's cron log, but nothing reaches you.
+
+### Checking it by hand
+
+```bash
+npm run monitor                      # locally, against live upstreams
+curl https://<deployment>/api/monitor  # the deployed route, if no CRON_SECRET
+```
+
+With a secret set:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://<deployment>/api/monitor
+```
 
 ## When it fails
 

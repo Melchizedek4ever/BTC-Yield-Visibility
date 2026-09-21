@@ -1,8 +1,7 @@
 #!/bin/sh
-# Local pre-push gate — mirrors .github/workflows/ci.yml so a red build never
-# leaves the machine. While GitHub Actions is unavailable this is the *only*
-# gate enforcing lint/typecheck/tests, so it must stay in step with that
-# workflow whenever either one changes.
+# Local pre-push gate — runs the same `npm run verify` that Vercel runs before
+# every build, so a red build never leaves the machine. Both call the one script
+# rather than restating its steps, which is what stops them drifting apart.
 #
 # Also refuses direct pushes to main — every change lands through a PR.
 #
@@ -19,7 +18,5 @@ while read -r _local_ref _local_sha remote_ref _remote_sha; do
   esac
 done
 
-echo "pre-push: running lint, typecheck, and tests..."
-npm run lint || exit 1
-npm run typecheck || exit 1
-npm test || exit 1
+echo "pre-push: running the quality gate..."
+npm run verify || exit 1

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run verify && next build",
+  "crons": [
+    {
+      "path": "/api/monitor",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
